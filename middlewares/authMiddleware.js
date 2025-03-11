@@ -1,4 +1,4 @@
-const supabase = require('../services/supabaseService');
+const { supabase } = require('../services/supabaseService'); // Ensure correct import
 
 exports.verifyToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
