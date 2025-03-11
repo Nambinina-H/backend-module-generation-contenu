@@ -67,3 +67,47 @@ exports.login = async (req, res) => {
   });
 };
 
+// Modifie role d'un utilisateur
+exports.setUserRole = async (req, res) => {
+  const { userId, newRole } = req.body;
+  const adminRole = req.user.role; // Récupérer le rôle de l'admin qui fait la requête
+
+  // Vérifier que l'utilisateur est bien admin
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: "Accès refusé. Seuls les admins peuvent modifier les rôles." });
+  }
+
+  // Vérifier que le rôle est valide
+  if (!['user', 'admin'].includes(newRole)) {
+    return res.status(400).json({ error: "Rôle invalide. Valeurs autorisées : 'user' ou 'admin'." });
+  }
+
+  try {
+    // Vérifier si l'utilisateur existe dans `profiles`
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !existingUser) {
+      return res.status(404).json({ error: "Utilisateur introuvable." });
+    }
+
+    // Mettre à jour le rôle de l'utilisateur
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error("🚨 Erreur lors du changement de rôle :", error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ message: `Rôle de l'utilisateur mis à jour en '${newRole}'.` });
+  } catch (error) {
+    console.error("🚨 Erreur serveur :", error);
+    res.status(500).json({ error: error.message });
+  }
+};

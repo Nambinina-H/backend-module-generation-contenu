@@ -8,5 +8,6 @@ router.post('/login', authController.login);
 router.get('/profile', verifyToken, (req, res) => {
   res.json({ message: 'Profil utilisateur', user: req.user });
 });
+router.put('/set-role', verifyToken, authController.setUserRole);
 
 module.exports = router;
