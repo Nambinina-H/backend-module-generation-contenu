@@ -67,12 +67,13 @@ exports.listUserContent = async (req, res) => {
 
 // Modifie les contenus de l'utilisateur connecté
 exports.updateContent = async (req, res) => {
-  const { contentId } = req.params; // ID du contenu à modifier
+  const { contentId } = req.params;
   const { type, keywords, personalization, status } = req.body;
-  const userId = req.user.id; // ID de l’utilisateur connecté
+  const userId = req.user.id;
+  const userRole = req.user.role; // Récupérer le rôle de l'utilisateur
 
   try {
-    // Vérifier si le contenu appartient à l'utilisateur
+    // Vérifier si le contenu existe
     const { data: existingContent, error: fetchError } = await supabase
       .from('content')
       .select('user_id')
@@ -83,7 +84,8 @@ exports.updateContent = async (req, res) => {
       return res.status(404).json({ error: 'Contenu introuvable' });
     }
 
-    if (existingContent.user_id !== userId) {
+    // Vérifier les permissions : admin = accès total, user = accès limité
+    if (userRole !== 'admin' && existingContent.user_id !== userId) {
       return res.status(403).json({ error: 'Accès refusé. Vous ne pouvez modifier que votre propre contenu.' });
     }
 
@@ -107,13 +109,15 @@ exports.updateContent = async (req, res) => {
 };
 
 
+
 // Supprime les contenus de l'utilisateur connecté
 exports.deleteContent = async (req, res) => {
-  const { contentId } = req.params; // ID du contenu à supprimer
-  const userId = req.user.id; // ID de l’utilisateur connecté
+  const { contentId } = req.params;
+  const userId = req.user.id;
+  const userRole = req.user.role; // Récupérer le rôle de l'utilisateur
 
   try {
-    // Vérifier si le contenu appartient à l'utilisateur
+    // Vérifier si le contenu existe
     const { data: existingContent, error: fetchError } = await supabase
       .from('content')
       .select('user_id')
@@ -124,7 +128,8 @@ exports.deleteContent = async (req, res) => {
       return res.status(404).json({ error: 'Contenu introuvable' });
     }
 
-    if (existingContent.user_id !== userId) {
+    // Vérifier les permissions : admin = accès total, user = accès limité
+    if (userRole !== 'admin' && existingContent.user_id !== userId) {
       return res.status(403).json({ error: 'Accès refusé. Vous ne pouvez supprimer que votre propre contenu.' });
     }
 
@@ -142,4 +147,5 @@ exports.deleteContent = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
