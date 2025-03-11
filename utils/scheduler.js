@@ -12,7 +12,14 @@ cron.schedule('* * * * *', async () => {
     .eq('status', 'scheduled')
     .lte('schedule_time', new Date().toISOString());
 
-  if (error) return console.error('Erreur de récupération des contenus planifiés:', error);
+  if (error) {
+    return console.error('Erreur de récupération des contenus planifiés:', error);
+  }
+
+  if (!scheduledContents || scheduledContents.length === 0) {
+    console.log('Aucun contenu planifié à publier.');
+    return;
+  }
 
   for (const content of scheduledContents) {
     // Publie sur toutes les plateformes associées (à adapter si tu stockes cette info)
