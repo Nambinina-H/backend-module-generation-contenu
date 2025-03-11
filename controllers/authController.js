@@ -25,6 +25,17 @@ exports.register = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 
+  // Créer le profil dans `profiles`
+  const userId = data.user.id;
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert([{ user_id: userId, role: 'user' }]);
+
+  if (profileError) {
+    console.error("Erreur lors de la création du profil :", profileError);
+    return res.status(500).json({ error: 'Erreur lors de la création du profil utilisateur.' });
+  }
+
   res.json({ message: 'Utilisateur créé avec succès', data });
 };
 
