@@ -120,18 +120,31 @@ exports.listUsers = async (req, res) => {
     return res.status(403).json({ error: "Accès refusé. Seuls les admins peuvent voir la liste des utilisateurs." });
   }
 
+  // Récupérer `page` et `limit` depuis la requête (valeurs par défaut : page 1, 10 utilisateurs par page)
+  let { page = 1, limit = 10 } = req.query;
+  page = parseInt(page);
+  limit = parseInt(limit);
+
+  if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+    return res.status(400).json({ error: "Les paramètres `page` et `limit` doivent être des nombres positifs." });
+  }
+
   try {
-    // Récupérer tous les profils (user_id + role)
+    // Récupérer tous les profils avec pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('user_id, role');
+      .select('user_id, role')
+      .range(from, to);
 
     if (profilesError) {
       console.error("🚨 Erreur lors de la récupération des profils :", profilesError);
       return res.status(500).json({ error: profilesError.message });
     }
 
-    // Utiliser `supabaseAdmin` pour récupérer tous les utilisateurs via Admin API
+    // Récupérer tous les utilisateurs via Supabase Admin API
     const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
 
     if (usersError) {
@@ -144,16 +157,33 @@ exports.listUsers = async (req, res) => {
       const user = users.users.find(u => u.id === profile.user_id);
       return {
         user_id: profile.user_id,
-        email: user ? user.email : null, // Ajoute l'email s'il est trouvé
+        email: user ? user.email : null,
         role: profile.role
       };
     });
 
-    res.json({ message: "Liste des utilisateurs récupérée avec succès", users: userList });
+    // Compter le nombre total d'utilisateurs
+    const { count, error: countError } = await supabase
+      .from('profiles')
+      .select('*', { count: "exact", head: true });
+
+    if (countError) {
+      console.error("🚨 Erreur lors du comptage des utilisateurs :", countError);
+      return res.status(500).json({ error: countError.message });
+    }
+
+    res.json({
+      message: "Liste des utilisateurs récupérée avec succès",
+      totalUsers: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      users: userList
+    });
   } catch (error) {
     console.error("🚨 Erreur serveur :", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
