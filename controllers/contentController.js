@@ -141,6 +141,9 @@ exports.deleteContent = async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    // Enregistrer le log
+  await logAction(userId, 'delete', `Contenu ${contentId} supprimé`);
+
     res.json({ message: 'Contenu supprimé avec succès' });
   } catch (error) {
     console.error('🚨 Erreur serveur :', error);

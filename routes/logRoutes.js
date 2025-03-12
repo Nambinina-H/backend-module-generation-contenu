@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const logController = require('../controllers/logController');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const logController = require('../controllers/logController');
 
-router.post('/', verifyToken, logController.logAction);
+router.get('/', verifyToken, logController.getLogs);
 
 module.exports = router;

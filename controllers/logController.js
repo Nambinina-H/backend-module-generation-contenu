@@ -1,12 +1,18 @@
-// controllers/logController.js
-const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const { supabase } = require('../services/supabaseService');
 
-exports.logAction = async (req, res) => {
-  const { userId, action, details } = req.body;
+exports.getLogs = async (req, res) => {
+  const adminRole = req.user.role;
+
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: "Accès refusé. Seuls les admins peuvent voir les logs." });
+  }
+
   const { data, error } = await supabase
     .from('logs')
-    .insert([{ user_id: userId, action, details, timestamp: new Date() }]);
+    .select('*')
+    .order('created_at', { ascending: false });
+
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ message: 'Action journalisée', data });
+
+  res.json({ message: "Logs récupérés avec succès", logs: data });
 };

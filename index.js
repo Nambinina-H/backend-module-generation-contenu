@@ -24,7 +24,7 @@ const logRoutes = require('./routes/logRoutes');
 app.use('/auth', authRoutes);
 app.use('/content', contentRoutes);
 app.use('/publish', publishRoutes);
-app.use('/log', logRoutes);
+app.use('/logs', logRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

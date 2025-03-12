@@ -1,5 +1,6 @@
 // controllers/authController.js
 const { supabase, supabaseAdmin } = require('../services/supabaseService');
+const { logAction } = require('../services/logService'); // Import logAction
 
 // Inscription d'un utilisateur
 exports.register = async (req, res) => {
@@ -31,6 +32,8 @@ exports.register = async (req, res) => {
     .from('profiles')
     .insert([{ user_id: userId, role: 'user' }]);
 
+  await logAction(userId, 'create', `Utilisateur ${email} inscrit`);
+
   if (profileError) {
     console.error("Erreur lors de la création du profil :", profileError);
     return res.status(500).json({ error: 'Erreur lors de la création du profil utilisateur.' });
@@ -59,6 +62,9 @@ exports.login = async (req, res) => {
   if (error) {
     return res.status(400).json({ error: error.message });
   }
+
+ // Enregistrer le log de connexion
+ await logAction(data.user.id, 'login', `Utilisateur ${email} connecté`);
 
   res.json({
     message: 'Connexion réussie',
@@ -104,6 +110,9 @@ exports.setUserRole = async (req, res) => {
       console.error("🚨 Erreur lors du changement de rôle :", error);
       return res.status(500).json({ error: error.message });
     }
+
+     // Enregistrer le log
+  await logAction(req.user.id, 'update', `Changement de rôle de l'utilisateur ${userId} en ${newRole}`);
 
     res.json({ message: `Rôle de l'utilisateur mis à jour en '${newRole}'.` });
   } catch (error) {
