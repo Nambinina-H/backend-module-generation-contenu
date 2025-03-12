@@ -2,6 +2,8 @@
 const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const { generateContent } = require('../services/contentGenerator');
+const { logAction } = require('../services/logService');
+
 
 exports.generate = async (req, res) => {
   const { type, keywords, personalization } = req.body;
