@@ -27,6 +27,8 @@ app.use('/publish', publishRoutes);
 app.use('/logs', logRoutes);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend lancé sur le port ${PORT}`);
 });
+
+module.exports = server; // Exporter le serveur pour les tests
