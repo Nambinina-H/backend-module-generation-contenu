@@ -234,3 +234,41 @@ exports.listUsers = async (req, res) => {
   }
 };
 
+exports.deleteUser = async (req, res) => {
+  const { userId } = req.params; // Récupérer l'ID de l'utilisateur à supprimer
+  const adminRole = req.user.role;
+
+  // Vérifier que seul un admin peut supprimer un utilisateur
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: "Accès refusé. Seuls les admins peuvent supprimer un utilisateur." });
+  }
+
+  try {
+    // Vérifier si l'utilisateur existe
+    const { data: existingUser, error: userError } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    if (userError || !existingUser) {
+      return res.status(404).json({ error: "Utilisateur introuvable." });
+    }
+
+    // Supprimer l'utilisateur de `auth.users` via Supabase Admin API
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (deleteError) {
+      console.error("🚨 Erreur lors de la suppression de l'utilisateur :", deleteError);
+      return res.status(500).json({ error: deleteError.message });
+    }
+
+    // Enregistrer le log
+    await logAction(req.user.id, 'delete', `Utilisateur ${userId} supprimé par admin`);
+
+    res.json({ message: "Utilisateur supprimé avec succès." });
+  } catch (error) {
+    console.error("🚨 Erreur serveur :", error);
+    res.status(500).json({ error: error.message });
+  }
+};
