@@ -32,7 +32,16 @@ exports.generateContent = async (type, keywords, personalization = {}) => {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [{ role: "developer", content: finalPrompt }],
+      messages: [
+        {
+            role: "developer",
+            content: "Vous êtes un expert en communication digitale et en rédaction de contenu optimisé pour le web. Votre mission est de générer un contenu qui pourra être publié à la fois sur les réseaux sociaux (Facebook, LinkedIn, Twitter, Instagram) et sur WordPress. Le contenu doit être rédigé en respectant les critères suivants : \n\n• Utiliser les mots-clés fournis pour structurer le texte. \n• Adopter le ton spécifié par l'utilisateur (par exemple, professionnel, décontracté, informatif, etc.) sans ajouter de consignes par défaut. \n• Le contenu doit être adapté aux contraintes de longueur de chaque plateforme : \n   - Pour Twitter, le contenu doit être concis et percutant (maximum 280 caractères). \n   - Pour WordPress, le contenu peut être plus long et détaillé, optimisé pour le SEO. \n   - Pour Facebook, LinkedIn et Instagram, le contenu doit être engageant et adapté au format de la plateforme. \n• Intégrer les variables dynamiques indiquées (par exemple, Nom: \"Votre Entreprise\", Date: \"12/03/2025\", Lieu: \"Paris\") dans le texte. \n\nGénérez un contenu cohérent, captivant et prêt à être publié sur ces plateformes en prenant en compte ces instructions."
+        },
+        {
+            role: "user",
+            content: finalPrompt,
+        },
+      ],
       max_tokens: 300,
       temperature: 0.7,
     });
