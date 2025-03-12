@@ -12,5 +12,4 @@ router.put('/set-role', verifyToken, authController.setUserRole);
 router.get('/list-users', verifyToken, authController.listUsers);
 router.delete('/delete/:userId', verifyToken, authController.deleteUser);
 
-
 module.exports = router;
