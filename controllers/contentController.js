@@ -34,6 +34,9 @@ exports.generate = async (req, res) => {
 
     console.log("📌 Données insérées dans Supabase :", data); // Debugging
 
+     // Enregistrer le log de génération de contenu
+     await logAction(userId, 'generate_content', `Contenu de type '${type}' généré avec les mots-clés : ${keywords.join(', ')}`);
+
     res.json({ message: 'Contenu généré avec succès', content: data });
   } catch (error) {
     console.error('🚨 Erreur serveur:', error);

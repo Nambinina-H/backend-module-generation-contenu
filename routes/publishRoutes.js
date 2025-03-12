@@ -4,5 +4,8 @@ const publishController = require('../controllers/publishController');
 const { verifyToken } = require('../middlewares/authMiddleware');
 
 router.post('/', verifyToken, publishController.publish);
+router.post('/cancel', verifyToken, publishController.cancelScheduledPublication);
+
+
 
 module.exports = router;
