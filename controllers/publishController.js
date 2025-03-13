@@ -1,108 +1,150 @@
-// controllers/publishController.js
-const { createClient } = require('@supabase/supabase-js');
+const { createClient } = require("@supabase/supabase-js");
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-const { publishToPlatform } = require('../services/makeService');
+const { adaptContentForPlatform } = require("../services/contentAdapter");
+const { publishToPlatform } = require("../services/makeService");
+const { logAction } = require("../services/logService"); // Import logAction
 
+/**
+ * Publie ou planifie la publication d'un contenu.
+ * @param {Object} req - Requête Express.
+ * @param {Object} res - Réponse Express.
+ */
 exports.publish = async (req, res) => {
   const { contentId, platforms, scheduleTime } = req.body;
-  const userId = req.user.id; // Récupérer l'ID de l'utilisateur
+  const userId = req.user.id;
 
   if (!contentId || !platforms || !Array.isArray(platforms)) {
-    return res.status(400).json({ error: 'Merci de fournir un contentId et un tableau de plateformes.' });
+    return res.status(400).json({ error: "Merci de fournir un contentId et un tableau de plateformes." });
   }
 
-  // Récupérer le contenu généré depuis Supabase
-  const { data: contentData, error: fetchError } = await supabase
-    .from('content')
-    .select('*')
-    .eq('id', contentId)
+  // Vérifier si le contenu existe
+  const { data: contentData, error } = await supabase
+    .from("content")
+    .select("*")
+    .eq("id", contentId)
     .single();
 
-  if (fetchError || !contentData) {
-    return res.status(404).json({ error: 'Contenu introuvable' });
+  if (error || !contentData) {
+    return res.status(404).json({ error: "Contenu introuvable" });
   }
 
-  // Publication planifiée
-  if (scheduleTime) {
-    console.log(`Publication planifiée du contenu ${contentId} sur ${platforms.join(', ')} à ${scheduleTime}`);
-    await supabase.from('content').update({ status: 'scheduled', schedule_time: scheduleTime }).eq('id', contentId);
+  try {
+    // Si une date est fournie, planifier la publication
+    if (scheduleTime) {
+      await supabase
+        .from("content")
+        .update({ status: "scheduled", schedule_time: scheduleTime })
+        .eq("id", contentId);
 
-    // Enregistrer le log pour la planification
-    await logAction(userId, 'schedule_content', `Contenu ${contentId} planifié pour publication sur ${platforms.join(', ')} à ${scheduleTime}`);
+      await logAction(userId, "schedule_content", `Contenu ${contentId} planifié pour publication sur ${platforms.join(", ")} à ${scheduleTime}`);
 
-    return res.json({ message: 'Contenu planifié pour publication' });
-
-  } else {
-    // Publication immédiate via Make.com
-    try {
-      const publishResponses = {};
-      for (const platform of platforms) {
-        const response = await publishToPlatform(platform, contentData.content, contentId);
-        publishResponses[platform] = response;
-      }
-
-      // Mettre à jour le statut en "published"
-      await supabase.from('content').update({ status: 'published' }).eq('id', contentId);
-
-      // Enregistrer le log de publication
-      await logAction(userId, 'publish_content', `Contenu ${contentId} publié sur ${platforms.join(', ')}`);
-
-      res.json({ message: 'Contenu publié', details: publishResponses });
-    } catch (error) {
-      console.error('Erreur de publication:', error);
-      res.status(500).json({ error: error.message });
+      return res.json({ message: "Contenu planifié pour publication", scheduleTime });
     }
+
+    let publishResponses = {};
+
+    for (const platform of platforms) {
+      const adaptedContent = await adaptContentForPlatform(contentData.content, platform, contentData.personalization.longueur);
+      const response = await publishToPlatform(platform, adaptedContent, contentId);
+      publishResponses[platform] = response;
+    }
+
+    // Mettre à jour le statut en "published"
+    await supabase.from("content").update({ status: "published" }).eq("id", contentId);
+
+    await logAction(userId, "publish_content", `Contenu ${contentId} publié sur ${platforms.join(", ")}`);
+
+    res.json({ message: "Contenu publié avec succès", details: publishResponses });
+  } catch (error) {
+    console.error("🚨 Erreur de publication:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
-
+/**
+ * Annule une publication planifiée.
+ * @param {Object} req - Requête Express.
+ * @param {Object} res - Réponse Express.
+ */
 exports.cancelScheduledPublication = async (req, res) => {
   const { contentId } = req.body;
   const userId = req.user.id;
 
   if (!contentId) {
-    return res.status(400).json({ error: 'Merci de fournir un contentId.' });
+    return res.status(400).json({ error: "Merci de fournir un contentId." });
   }
 
   try {
-    // Vérifier si le contenu existe et est bien "scheduled"
+    // Vérifier si le contenu est bien planifié
     const { data: existingContent, error: fetchError } = await supabase
-      .from('content')
-      .select('id, user_id, status')
-      .eq('id', contentId)
+      .from("content")
+      .select("id, user_id, status")
+      .eq("id", contentId)
       .single();
 
     if (fetchError || !existingContent) {
-      return res.status(404).json({ error: 'Contenu introuvable ou non planifié.' });
+      return res.status(404).json({ error: "Contenu introuvable ou non planifié." });
     }
 
-    // Vérifier si l'utilisateur est bien l'auteur ou admin
-    if (existingContent.user_id !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Accès refusé. Vous ne pouvez annuler que votre propre contenu.' });
+    // Vérifier si l'utilisateur est l'auteur ou un admin
+    if (existingContent.user_id !== userId && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Accès refusé. Vous ne pouvez annuler que votre propre contenu." });
     }
 
-    if (existingContent.status !== 'scheduled') {
-      return res.status(400).json({ error: 'Ce contenu n’est pas planifié.' });
+    if (existingContent.status !== "scheduled") {
+      return res.status(400).json({ error: "Ce contenu n’est pas planifié." });
     }
 
-    // Annuler la publication en repassant en "draft"
-    const { error: updateError } = await supabase
-      .from('content')
-      .update({ status: 'draft', schedule_time: null })
-      .eq('id', contentId);
+    // Annuler la publication (remettre en "draft")
+    await supabase
+      .from("content")
+      .update({ status: "draft", schedule_time: null })
+      .eq("id", contentId);
 
-    if (updateError) {
-      console.error('🚨 Erreur lors de l’annulation de la publication :', updateError);
-      return res.status(500).json({ error: updateError.message });
-    }
-
-    // Enregistrer le log d’annulation
-    await logAction(userId, 'cancel_publication', `Publication du contenu ${contentId} annulée`);
+    await logAction(userId, "cancel_publication", `Publication du contenu ${contentId} annulée`);
 
     res.json({ message: `Publication du contenu ${contentId} annulée avec succès.` });
   } catch (error) {
-    console.error('🚨 Erreur serveur:', error);
+    console.error("🚨 Erreur d'annulation de publication:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
+/**
+ * Publie un contenu sur Facebook via Make.com.
+ * @param {Object} req - Requête Express.
+ * @param {Object} res - Réponse Express.
+ */
+exports.publishFacebook = async (req, res) => {
+  const { contentId } = req.body;
+  const userId = req.user.id;
+
+  // Vérifier si le contenu existe
+  const { data: contentData, error } = await supabase
+    .from("content")
+    .select("*")
+    .eq("id", contentId)
+    .single();
+
+  if (error || !contentData) {
+    return res.status(404).json({ error: "Contenu introuvable" });
+  }
+
+  try {
+    // Adapter le contenu pour Facebook
+    const adaptedContent = await adaptContentForPlatform(contentData.content, "facebook", contentData.personalization.longueur);
+
+    // Envoyer à Make.com via le webhook Facebook
+    const response = await publishToPlatform("facebook", adaptedContent, contentId);
+
+    // Mettre à jour le statut en "published"
+    await supabase.from("content").update({ status: "published" }).eq("id", contentId);
+
+    await logAction(userId, "publish_content", `Contenu ${contentId} publié sur Facebook`);
+
+    res.json({ message: "Contenu publié sur Facebook", details: response });
+  } catch (error) {
+    console.error("🚨 Erreur de publication sur Facebook:", error);
+    res.status(500).json({ error: error.message });
+  }
+};

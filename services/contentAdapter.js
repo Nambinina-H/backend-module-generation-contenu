@@ -1,10 +1,9 @@
-const { Configuration, OpenAIApi } = require("openai");
+const OpenAI = require("openai");
 const platformConfig = require('./platformConfig');
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 /**
  * Adapte un contenu pour une plateforme donnée en respectant la longueur max.
@@ -25,13 +24,18 @@ exports.adaptContentForPlatform = async (baseContent, platform, longueurPercenta
   if (targetLength) prompt += `Ne dépasse pas ${targetLength} caractères.\n`;
 
   try {
-    const response = await openai.createCompletion({
-      model: "gpt-4-o-mini",
-      prompt: prompt,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
       max_tokens: 300,
       temperature: 0.7,
     });
-    let adaptedContent = response.data.choices[0].text.trim();
+    let adaptedContent = response.choices[0].message.content.trim();
     return targetLength ? adaptedContent.substring(0, targetLength) : adaptedContent;
   } catch (error) {
     console.error(`Erreur adaptation ${platform}:`, error);

@@ -15,30 +15,33 @@ exports.generate = async (req, res) => {
 
   try {
     // Vérifier la génération du contenu
-    const content = await generateContent(type, keywords, personalization);
-    console.log("📌 Contenu généré :", content); // Debugging
-
+    const generatedResponse = await generateContent(type, keywords, personalization);
+    console.log("📌 Contenu généré :", generatedResponse); // Debugging
+  
     // Vérifier si le contenu est vide
-    if (!content) {
+    if (!generatedResponse) {
       return res.status(500).json({ error: "Erreur lors de la génération du contenu." });
     }
-
+  
+    // Extraire uniquement le contenu
+    const content = generatedResponse.message.content; // Ajout de cette ligne
+  
     // Insertion dans Supabase
     const { data, error } = await supabase
       .from('content')
-      .insert([{ type, keywords, content, personalization, status: 'generated', user_id: userId }])
+      .insert([{ type, keywords, content, personalization, status: 'generated', user_id: userId }]) // Modification ici
       .select();  // Ajout de `select()` pour récupérer les données insérées
-
+  
     if (error) {
       console.error('🚨 Erreur Supabase:', error);
       return res.status(500).json({ error: error.message });
     }
-
+  
     console.log("📌 Données insérées dans Supabase :", data); // Debugging
-
-     // Enregistrer le log de génération de contenu
-     await logAction(userId, 'generate_content', `Contenu de type '${type}' généré avec les mots-clés : ${keywords.join(', ')}`);
-
+  
+    // Enregistrer le log de génération de contenu
+    await logAction(userId, 'generate_content', `Contenu de type '${type}' généré avec les mots-clés : ${keywords.join(', ')}`);
+  
     res.json({ message: 'Contenu généré avec succès', content: data });
   } catch (error) {
     console.error('🚨 Erreur serveur:', error);
