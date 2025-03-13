@@ -19,12 +19,15 @@ const authRoutes = require('./routes/authRoutes');
 const contentRoutes = require('./routes/contentRoutes');
 const publishRoutes = require('./routes/publishRoutes');
 const logRoutes = require('./routes/logRoutes');
+const imageRoutes = require("./routes/imageRoutes");
 
 // Utilisation des routes
 app.use('/auth', authRoutes);
 app.use('/content', contentRoutes);
 app.use('/publish', publishRoutes);
 app.use('/logs', logRoutes);
+app.use("/image", imageRoutes);
+
 
 const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {
