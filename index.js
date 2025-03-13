@@ -31,4 +31,12 @@ const server = app.listen(PORT, () => {
   console.log(`Backend lancé sur le port ${PORT}`);
 });
 
+// Configuraton CORS pour autoriser uniquement le front-end sur Vercel
+const corsOptions = {
+  origin: 'https://module-generation-contenu.vercel.app', // URL de votre front-end
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+
 module.exports = server; // Exporter le serveur pour les tests
