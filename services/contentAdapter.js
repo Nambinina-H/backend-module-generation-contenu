@@ -32,7 +32,7 @@ exports.adaptContentForPlatform = async (baseContent, platform, longueurPercenta
           content: prompt,
         },
       ],
-      max_tokens: 300,
+      // max_tokens: 300,
       temperature: 0.7,
     });
     let adaptedContent = response.choices[0].message.content.trim();
