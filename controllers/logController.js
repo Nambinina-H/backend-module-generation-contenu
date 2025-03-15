@@ -1,4 +1,32 @@
-const { supabase } = require('../services/supabaseService');
+const { supabase, subscribeToLogs } = require('../services/supabaseService');
+const WebSocket = require('ws');
+
+const clients = new Set();
+
+// ✅ Activer Supabase Realtime pour suivre les nouvelles insertions
+subscribeToLogs((newLog) => {
+  console.log("📡 Envoi du log aux clients WebSocket :", newLog);
+  clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(newLog));
+    }
+  });
+});
+
+// ✅ WebSocket pour envoyer les logs en direct
+exports.logsWebSocket = (server) => {
+  const wss = new WebSocket.Server({ server });
+
+  wss.on('connection', (ws) => {
+    console.log("📡 Client connecté au WebSocket");
+    clients.add(ws);
+
+    ws.on('close', () => {
+      console.log("🔌 Client déconnecté");
+      clients.delete(ws);
+    });
+  });
+};
 
 exports.getLogs = async (req, res) => {
   const adminRole = req.user.role;

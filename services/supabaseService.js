@@ -8,12 +8,15 @@ const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABAS
   auth: { persistSession: false }
 });
 
-// ✅ Activer le mode Realtime pour les logs
-supabase
-  .channel('logs-channel')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'logs' }, (payload) => {
-    console.log("🆕 Nouveau log ajouté :", payload.new);
-  })
-  .subscribe();
+// ✅ Fonction pour activer le mode Realtime
+const subscribeToLogs = (callback) => {
+  return supabase
+    .channel('logs-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'logs' }, (payload) => {
+      console.log("🆕 Nouveau log ajouté :", payload.new);
+      if (callback) callback(payload.new);
+    })
+    .subscribe();
+};
 
-module.exports = { supabase, supabaseAdmin };
+module.exports = { supabase, supabaseAdmin, subscribeToLogs };
