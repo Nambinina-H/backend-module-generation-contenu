@@ -6,9 +6,15 @@ const clients = new Set();
 // ✅ Activer Supabase Realtime pour suivre les nouvelles insertions
 subscribeToLogs((newLog) => {
   console.log("📡 Envoi du log aux clients WebSocket :", newLog);
+  
+  // Parcourir les clients et leur envoyer le nouveau log
   clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(newLog));
+      try {
+        client.send(JSON.stringify(newLog));
+      } catch (error) {
+        console.error("🚨 Erreur lors de l'envoi du log via WebSocket :", error);
+      }
     }
   });
 });
@@ -18,14 +24,24 @@ exports.logsWebSocket = (server) => {
   const wss = new WebSocket.Server({ server });
 
   wss.on('connection', (ws) => {
-    console.log("📡 Client connecté au WebSocket");
+    console.log("📡 Nouveau client connecté au WebSocket");
     clients.add(ws);
 
+    // ✅ Envoyer un message de bienvenue
+    ws.send(JSON.stringify({ message: "🔗 Connexion WebSocket établie. En attente de logs..." }));
+
+    // ✅ Gestion des erreurs et fermeture propre
+    ws.on('error', (err) => {
+      console.error("⚠️ Erreur WebSocket :", err);
+    });
+
     ws.on('close', () => {
-      console.log("🔌 Client déconnecté");
+      console.log("🔌 Client déconnecté du WebSocket");
       clients.delete(ws);
     });
   });
+
+  console.log("🚀 Serveur WebSocket prêt et en attente de connexions...");
 };
 
 exports.getLogs = async (req, res) => {
