@@ -2,8 +2,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const http = require('http');
-const logsController = require('./controllers/logController');
 const app = express();
 
 // Importer et exécuter le scheduler pour la planification des publications
@@ -32,9 +30,7 @@ app.use("/image", imageRoutes);
 
 
 const PORT = process.env.PORT || 3001;
-const server = http.createServer(app);
-logsController.logsWebSocket(server);
-server.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend lancé sur le port ${PORT}`);
 });
 
