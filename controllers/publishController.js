@@ -66,7 +66,7 @@ exports.publishNow = async (req, res) => {
 
     for (const platform of platforms) {
       const adaptedContent = await adaptContentForPlatform(content, platform, type);
-      const response = await publishToPlatform(platform, content, null);
+      const response = await publishToPlatform(platform, adaptedContent, null);
       publishResponses[platform] = response;
     }
 
