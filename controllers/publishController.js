@@ -54,7 +54,7 @@ exports.schedulePublication = async (req, res) => {
  * @param {Object} res - Réponse Express.
  */
 exports.publishNow = async (req, res) => {
-  const { content, platforms, type } = req.body;
+  const { content, platforms, type, mediaUrl } = req.body;
   const userId = req.user.id;
 
   if (!content || !platforms || !Array.isArray(platforms) || !type) {
@@ -65,7 +65,10 @@ exports.publishNow = async (req, res) => {
     let publishResponses = {};
 
     for (const platform of platforms) {
-      const adaptedContent = await adaptContentForPlatform(content, platform, type);
+      let adaptedContent = await adaptContentForPlatform(content, platform, type);
+      if (mediaUrl) {
+        adaptedContent += `\n\n![media](${mediaUrl})`;
+      }
       const response = await publishToPlatform(platform, adaptedContent, null);
       publishResponses[platform] = response;
     }
