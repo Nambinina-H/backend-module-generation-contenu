@@ -5,11 +5,11 @@ const { publishToPlatform } = require("../services/makeService");
 const { logAction } = require("../services/logService"); // Import logAction
 
 /**
- * Publie ou planifie la publication d'un contenu.
+ * Planifie la publication d'un contenu.
  * @param {Object} req - Requête Express.
  * @param {Object} res - Réponse Express.
  */
-exports.publish = async (req, res) => {
+exports.schedulePublication = async (req, res) => {
   const { contentId, platforms, scheduleTime } = req.body;
   const userId = req.user.id;
 
@@ -33,7 +33,7 @@ exports.publish = async (req, res) => {
     if (scheduleTime) {
       await supabase
         .from("content")
-        .update({ status: "scheduled", schedule_time: scheduleTime })
+        .update({ status: "scheduled", schedule_time: scheduleTime, platforms })
         .eq("id", contentId);
 
       await logAction(userId, "schedule_content", `Contenu ${contentId} planifié pour publication sur ${platforms.join(", ")} à ${scheduleTime}`);
@@ -41,18 +41,36 @@ exports.publish = async (req, res) => {
       return res.json({ message: "Contenu planifié pour publication", scheduleTime });
     }
 
+    res.status(400).json({ error: "Merci de fournir une date de planification." });
+  } catch (error) {
+    console.error("🚨 Erreur de planification:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Publie un contenu immédiatement.
+ * @param {Object} req - Requête Express.
+ * @param {Object} res - Réponse Express.
+ */
+exports.publishNow = async (req, res) => {
+  const { content, platforms, type } = req.body;
+  const userId = req.user.id;
+
+  if (!content || !platforms || !Array.isArray(platforms) || !type) {
+    return res.status(400).json({ error: "Merci de fournir le contenu, un tableau de plateformes et le type de contenu." });
+  }
+
+  try {
     let publishResponses = {};
 
     for (const platform of platforms) {
-      const adaptedContent = await adaptContentForPlatform(contentData.content, platform, contentData.personalization.longueur);
-      const response = await publishToPlatform(platform, adaptedContent, contentId);
+      const adaptedContent = await adaptContentForPlatform(content, platform, type);
+      const response = await publishToPlatform(platform, adaptedContent, null);
       publishResponses[platform] = response;
     }
 
-    // Mettre à jour le statut en "published"
-    await supabase.from("content").update({ status: "published" }).eq("id", contentId);
-
-    await logAction(userId, "publish_content", `Contenu ${contentId} publié sur ${platforms.join(", ")}`);
+    await logAction(userId, "publish_content", `Contenu publié immédiatement sur ${platforms.join(", ")}`);
 
     res.json({ message: "Contenu publié avec succès", details: publishResponses });
   } catch (error) {

@@ -3,7 +3,8 @@ const router = express.Router();
 const publishController = require('../controllers/publishController');
 const { verifyToken } = require('../middlewares/authMiddleware');
 
-router.post('/', verifyToken, publishController.publish);
+router.post('/schedule', verifyToken, publishController.schedulePublication);
+router.post('/now', verifyToken, publishController.publishNow);
 router.post('/cancel', verifyToken, publishController.cancelScheduledPublication);
 router.post("/facebook", verifyToken, publishController.publishFacebook);
 
