@@ -20,7 +20,7 @@ exports.adaptContentForPlatform = async (baseContent, platform, longueurPercenta
     targetLength = Math.floor(config.maxLength * (parseInt(longueurPercentage.replace('%', '')) / 100));
   }
 
-  let prompt = `Adapte ce contenu pour ${platform} sans modifier le contenu.\n\n${baseContent}\n\n`;
+  let prompt = `Adapte ce contenu pour ${platform} sans modifier le contenu ni rien ajouter.\n\n${baseContent}\n\n`;
   
   if (targetLength) prompt += `Ne dépasse pas ${targetLength} caractères.\n`;
 
