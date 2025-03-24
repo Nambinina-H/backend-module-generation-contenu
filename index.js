@@ -20,6 +20,7 @@ const contentRoutes = require('./routes/contentRoutes');
 const publishRoutes = require('./routes/publishRoutes');
 const logRoutes = require('./routes/logRoutes');
 const imageRoutes = require("./routes/imageRoutes");
+const mediaRoutes = require('./routes/mediaRoutes');
 
 // Utilisation des routes
 app.use('/auth', authRoutes);
@@ -27,6 +28,7 @@ app.use('/content', contentRoutes);
 app.use('/publish', publishRoutes);
 app.use('/logs', logRoutes);
 app.use("/image", imageRoutes);
+app.use('/api/media', mediaRoutes);
 
 
 const PORT = process.env.PORT || 3001;
