@@ -14,9 +14,10 @@ const webhooks = {
  * @param {string} platform - Plateforme cible (facebook, linkedin, instagram, twitter, wordpress).
  * @param {string} content - Contenu à publier.
  * @param {string} mediaUrl - URL du média à publier.
+ * @param {string} type - Type de contenu à publier.
  * @returns {Promise<Object>} - Réponse de Make.com.
  */
-exports.publishToPlatform = async (platform, content, mediaUrl) => {
+exports.publishToPlatform = async (platform, content, mediaUrl, type) => {
   const webhookUrl = webhooks[platform.toLowerCase()];
 
   if (!webhookUrl) {
@@ -28,6 +29,7 @@ exports.publishToPlatform = async (platform, content, mediaUrl) => {
       platform,
       mediaUrl,
       content,
+      type,
     });
 
     return response.data;
