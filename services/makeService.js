@@ -13,10 +13,10 @@ const webhooks = {
  * Envoie un contenu à Make.com via le webhook de la plateforme cible.
  * @param {string} platform - Plateforme cible (facebook, linkedin, instagram, twitter, wordpress).
  * @param {string} content - Contenu à publier.
- * @param {string} contentId - ID du contenu en base.
+ * @param {string} mediaUrl - URL du média à publier.
  * @returns {Promise<Object>} - Réponse de Make.com.
  */
-exports.publishToPlatform = async (platform, content, contentId) => {
+exports.publishToPlatform = async (platform, content, mediaUrl) => {
   const webhookUrl = webhooks[platform.toLowerCase()];
 
   if (!webhookUrl) {
@@ -26,7 +26,7 @@ exports.publishToPlatform = async (platform, content, contentId) => {
   try {
     const response = await axios.post(webhookUrl, {
       platform,
-      contentId,
+      mediaUrl,
       content,
     });
 
