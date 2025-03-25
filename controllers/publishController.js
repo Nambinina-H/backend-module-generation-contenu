@@ -1,6 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-const { adaptContentForPlatform } = require("../services/contentAdapter");
 const { publishToPlatform } = require("../services/makeService");
 const { logAction } = require("../services/logService"); // Import logAction
 
@@ -69,8 +68,7 @@ exports.publishNow = async (req, res) => {
     let publishResponses = {};
 
     for (const platform of platforms) {
-      let adaptedContent = (type === 'text' || type === 'text-image' || type === 'text-video') ? await adaptContentForPlatform(content, platform, type) : '';
-      const response = await publishToPlatform(platform, adaptedContent, mediaUrl, type);
+      const response = await publishToPlatform(platform, content, mediaUrl, type);
       publishResponses[platform] = response;
     }
 
@@ -153,11 +151,8 @@ exports.publishFacebook = async (req, res) => {
   }
 
   try {
-    // Adapter le contenu pour Facebook
-    const adaptedContent = await adaptContentForPlatform(contentData.content, "facebook", contentData.personalization.longueur);
-
     // Envoyer à Make.com via le webhook Facebook
-    const response = await publishToPlatform("facebook", adaptedContent, contentId, contentData.type);
+    const response = await publishToPlatform("facebook", contentData.content, contentId, contentData.type);
 
     // Mettre à jour le statut en "published"
     await supabase.from("content").update({ status: "published" }).eq("id", contentId);
