@@ -57,15 +57,19 @@ exports.publishNow = async (req, res) => {
   const { content, platforms, type, mediaUrl } = req.body;
   const userId = req.user.id;
 
-  if (!content || !platforms || !Array.isArray(platforms) || !type) {
-    return res.status(400).json({ error: "Merci de fournir le contenu, un tableau de plateformes et le type de contenu." });
+  if (!platforms || !Array.isArray(platforms) || !type) {
+    return res.status(400).json({ error: "Merci de fournir un tableau de plateformes et le type de contenu." });
+  }
+
+  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video'))) {
+    return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
   }
 
   try {
     let publishResponses = {};
 
     for (const platform of platforms) {
-      let adaptedContent = await adaptContentForPlatform(content, platform, type);
+      let adaptedContent = type === 'text' ? await adaptContentForPlatform(content, platform, type) : '';
       const response = await publishToPlatform(platform, adaptedContent, mediaUrl, type);
       publishResponses[platform] = response;
     }
