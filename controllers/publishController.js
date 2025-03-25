@@ -61,7 +61,7 @@ exports.publishNow = async (req, res) => {
     return res.status(400).json({ error: "Merci de fournir un tableau de plateformes et le type de contenu." });
   }
 
-  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video'))) {
+  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || type === 'text-video') && (!content || !mediaUrl))) {
     return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
   }
 
@@ -69,7 +69,7 @@ exports.publishNow = async (req, res) => {
     let publishResponses = {};
 
     for (const platform of platforms) {
-      let adaptedContent = type === 'text' ? await adaptContentForPlatform(content, platform, type) : '';
+      let adaptedContent = (type === 'text' || type === 'text-image' || type === 'text-video') ? await adaptContentForPlatform(content, platform, type) : '';
       const response = await publishToPlatform(platform, adaptedContent, mediaUrl, type);
       publishResponses[platform] = response;
     }
