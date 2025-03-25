@@ -72,7 +72,7 @@ exports.publishNow = async (req, res) => {
       publishResponses[platform] = response;
     }
 
-    await logAction(userId, "publish_content", `Contenu publié immédiatement sur ${platforms.join(", ")}`);
+    await logAction(userId, "publish_content", `Contenu publié sur ${platforms.join(", ")}`);
 
     res.json({ message: "Contenu publié avec succès", details: publishResponses });
   } catch (error) {
