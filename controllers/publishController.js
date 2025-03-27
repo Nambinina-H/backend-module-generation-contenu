@@ -129,39 +129,3 @@ exports.cancelScheduledPublication = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-/**
- * Publie un contenu sur Facebook via Make.com.
- * @param {Object} req - Requête Express.
- * @param {Object} res - Réponse Express.
- */
-exports.publishFacebook = async (req, res) => {
-  const { contentId } = req.body;
-  const userId = req.user.id;
-
-  // Vérifier si le contenu existe
-  const { data: contentData, error } = await supabase
-    .from("content")
-    .select("*")
-    .eq("id", contentId)
-    .single();
-
-  if (error || !contentData) {
-    return res.status(404).json({ error: "Contenu introuvable" });
-  }
-
-  try {
-    // Envoyer à Make.com via le webhook Facebook
-    const response = await publishToPlatform("facebook", contentData.content, contentId, contentData.type);
-
-    // Mettre à jour le statut en "published"
-    await supabase.from("content").update({ status: "published" }).eq("id", contentId);
-
-    await logAction(userId, "publish_content", `Contenu ${contentId} publié sur Facebook`);
-
-    res.json({ message: "Contenu publié sur Facebook", details: response });
-  } catch (error) {
-    console.error("🚨 Erreur de publication sur Facebook:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
