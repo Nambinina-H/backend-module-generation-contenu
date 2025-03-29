@@ -9,40 +9,41 @@ const { logAction } = require("../services/logService"); // Import logAction
  * @param {Object} res - Réponse Express.
  */
 exports.schedulePublication = async (req, res) => {
-  const { contentId, platforms, scheduleTime } = req.body;
+  const { content, platforms, type, mediaUrl, scheduleTime } = req.body;
   const userId = req.user.id;
 
-  if (!contentId || !platforms || !Array.isArray(platforms)) {
-    return res.status(400).json({ error: "Merci de fournir un contentId et un tableau de plateformes." });
+  if (!platforms || !Array.isArray(platforms) || !type || !scheduleTime) {
+    return res.status(400).json({ error: "Merci de fournir un tableau de plateformes, le type de contenu et une date de planification." });
   }
 
-  // Vérifier si le contenu existe
-  const { data: contentData, error } = await supabase
-    .from("content")
-    .select("*")
-    .eq("id", contentId)
-    .single();
-
-  if (error || !contentData) {
-    return res.status(404).json({ error: "Contenu introuvable" });
+  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || type === 'text-video') && (!content || !mediaUrl))) {
+    return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
   }
 
   try {
-    // Si une date est fournie, planifier la publication
-    if (scheduleTime) {
-      await supabase
-        .from("content")
-        .update({ status: "scheduled", schedule_time: scheduleTime, platforms })
-        .eq("id", contentId);
+    // Insert the scheduled content into the database
+    const { data, error } = await supabase
+      .from("content")
+      .insert({
+        content,
+        platforms,
+        type,
+        mediaUrl,
+        status: "scheduled",
+        schedule_time: scheduleTime,
+        user_id: userId,
+      });
 
-      await logAction(userId, "schedule_content", `Contenu ${contentId} planifié pour publication sur ${platforms.join(", ")} à ${scheduleTime}`);
-
-      return res.json({ message: "Contenu planifié pour publication", scheduleTime });
+    if (error) {
+      console.error("🚨 Erreur lors de la planification :", error);
+      return res.status(500).json({ error: error.message });
     }
 
-    res.status(400).json({ error: "Merci de fournir une date de planification." });
+    await logAction(userId, "schedule_content", `Contenu planifié pour publication sur ${platforms.join(", ")} à ${scheduleTime}`);
+
+    res.json({ message: "Contenu planifié avec succès", details: data });
   } catch (error) {
-    console.error("🚨 Erreur de planification:", error);
+    console.error("🚨 Erreur serveur :", error);
     res.status(500).json({ error: error.message });
   }
 };

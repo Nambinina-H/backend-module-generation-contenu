@@ -23,7 +23,7 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
     const platforms = content.platforms || [];
     for (const platform of platforms) {
       try {
-        await publishToPlatform(platform, content.content, content.id);
+        await publishToPlatform(platform, content.content, content.mediaUrl, content.type);
       } catch (err) {
         console.error(`Erreur de publication pour le contenu ${content.id} sur ${platform}:`, err);
       }
