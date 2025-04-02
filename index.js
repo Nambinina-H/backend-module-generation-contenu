@@ -21,6 +21,7 @@ const publishRoutes = require('./routes/publishRoutes');
 const logRoutes = require('./routes/logRoutes');
 const imageRoutes = require("./routes/imageRoutes");
 const mediaRoutes = require('./routes/mediaRoutes');
+const apiConfigRoutes = require('./routes/apiConfigRoutes');
 
 // Utilisation des routes
 app.use('/auth', authRoutes);
@@ -29,6 +30,7 @@ app.use('/publish', publishRoutes);
 app.use('/logs', logRoutes);
 app.use("/image", imageRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/config', apiConfigRoutes);
 
 
 const PORT = process.env.PORT || 3001;
