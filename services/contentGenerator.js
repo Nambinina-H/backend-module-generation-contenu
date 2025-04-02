@@ -1,6 +1,12 @@
 const OpenAI = require("openai");
+const ApiConfigService = require('./apiConfigService');
 
-const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY,});
+const getOpenAIClient = () => {
+  const apiKeys = ApiConfigService.getKeyFromCache('openai');
+  return new OpenAI({
+    apiKey: apiKeys?.api_key || process.env.OPENAI_API_KEY,
+  });
+};
 
 /**
  * Génère du contenu textuel en utilisant OpenAI.
@@ -15,6 +21,7 @@ const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY,});
  * @returns {Promise<string|null>} - Le contenu généré.
  */
 exports.generateContent = async (type, keywords, personalization = {}) => {
+  const openai = getOpenAIClient();
   if (type !== 'text') return null; 
 
   let finalPrompt = `${personalization.modelType || "Article de blog"}\n`;

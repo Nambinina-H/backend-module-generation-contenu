@@ -1,8 +1,12 @@
 const OpenAI = require("openai");
+const ApiConfigService = require('./apiConfigService');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Assure-toi que ta clé API est bien définie dans ton fichier .env
-});
+const getOpenAIClient = () => {
+  const apiKeys = ApiConfigService.getKeyFromCache('openai');
+  return new OpenAI({
+    apiKey: apiKeys?.api_key || process.env.OPENAI_API_KEY,
+  });
+};
 
 /**
  * Génère une image avec OpenAI DALL·E 3.
@@ -14,6 +18,7 @@ const openai = new OpenAI({
  * @returns {Promise<string>} - URL de l'image générée.
  */
 exports.generateImage = async (prompt, keywords = [], quality = "standard", size = "1024x1024", style = "vivid") => {
+  const openai = getOpenAIClient();
   try {
     // Si aucun prompt n'est fourni, construire un prompt à partir des mots-clés
     let finalPrompt = prompt || "";

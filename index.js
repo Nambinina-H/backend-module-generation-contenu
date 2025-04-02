@@ -32,18 +32,24 @@ app.use("/image", imageRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/config', apiConfigRoutes);
 
+const ApiConfigService = require('./services/apiConfigService');
 
-const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
-  console.log(`Backend lancé sur le port ${PORT}`);
+// Charger les clés API au démarrage
+ApiConfigService.loadApiKeys().then(() => {
+  const PORT = process.env.PORT || 3001;
+  const server = app.listen(PORT, () => {
+    console.log(`Backend lancé sur le port ${PORT}`);
+  });
+  
+  module.exports = server;
+}).catch(error => {
+  console.error('Erreur lors du démarrage:', error);
+  process.exit(1);
 });
 
 // Configuraton CORS pour autoriser uniquement le front-end sur Vercel
 const corsOptions = {
-  origin: 'https://module-generation-contenu.vercel.app', // URL de votre front-end
+  origin: '*', // URL de votre front-end
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-
-
-module.exports = server; // Exporter le serveur pour les tests
