@@ -11,9 +11,6 @@ const getOpenAIClient = () => {
   
   if (!apiKeys?.apiKey) {
     console.warn('⚠️ Aucune clé API OpenAI trouvée dans le cache');
-    return new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
   }
   
   return new OpenAI({

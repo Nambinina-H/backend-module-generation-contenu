@@ -8,17 +8,9 @@ const getMakeWebhooks = () => {
     platforms: apiKeys ? Object.keys(apiKeys) : []
   });
   
-  if (!apiKeys) {
-    console.warn('⚠️ Aucun webhook Make.com trouvé dans le cache');
+  if (!apiKeys) {console.warn('⚠️ Aucun webhook Make.com trouvé dans le cache');
     // Fallback sur les variables d'environnement
-    return {
-      facebook: process.env.MAKE_WEBHOOK_FACEBOOK,
-      linkedin: process.env.MAKE_WEBHOOK_LINKEDIN,
-      instagram: process.env.MAKE_WEBHOOK_INSTAGRAM,
-      twitter: process.env.MAKE_WEBHOOK_TWITTER,
-      wordpress: process.env.MAKE_WEBHOOK_WORDPRESS,
-    };
-  }
+}
   
   return apiKeys;
 };
