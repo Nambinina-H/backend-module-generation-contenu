@@ -43,7 +43,7 @@ exports.getApiKeys = async (req, res) => {
     const decryptedData = data.map((item) => {
       const keys = JSON.parse(decrypt(item.keys));
       // Masquer les clés sauf pour les clés spécifiées
-      const unmaskedKeys = ["facebook", "linkedin", "instagram", "twitter", "clientId", "redirectUri", "url"];
+      const unmaskedKeys = ["facebook", "linkedin", "instagram", "twitter", "clientId", "blog_id", "blog_url", "redirectUri", "url"];
       const maskedKeys = Object.fromEntries(
         Object.entries(keys).map(([key, value]) => [
           key,

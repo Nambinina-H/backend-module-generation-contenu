@@ -9,7 +9,8 @@ class WordPressOAuthService {
       client_secret: process.env.WORDPRESS_CLIENT_SECRET,
       code: code,
       redirect_uri: process.env.WORDPRESS_REDIRECT_URI,
-      grant_type: 'authorization_code'
+      grant_type: 'authorization_code',
+      response_type: 'code'
     });
 
     try {
