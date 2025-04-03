@@ -30,10 +30,9 @@ exports.addApiKey = async (req, res) => {
 
 exports.getApiKeys = async (req, res) => {
   const { platform } = req.query;
-  const userId = req.user.id;
 
   try {
-    let query = supabase.from('api_configurations').select('*').eq('user_id', userId);
+    let query = supabase.from('api_configurations').select('*'); // Removed user_id filter
     if (platform) query = query.eq('platform', platform);
 
     const { data, error } = await query;
@@ -69,7 +68,6 @@ exports.getApiKeys = async (req, res) => {
 exports.updateApiKey = async (req, res) => {
   const { id } = req.params;
   const { keys } = req.body;
-  const userId = req.user.id;
 
   if (!keys) {
     return res.status(400).json({ error: 'Les clés sont obligatoires.' });
@@ -77,26 +75,24 @@ exports.updateApiKey = async (req, res) => {
 
   try {
     const encryptedKeys = encrypt(JSON.stringify(keys));
-    // Une seule requête qui vérifie l'existence, la propriété et met à jour
     const { data, error } = await supabase
       .from('api_configurations')
       .update({ 
         keys: encryptedKeys, 
         updated_at: new Date().toISOString() 
       })
-      .eq('id', id)
-      .eq('user_id', userId) // Vérifie la propriété
-      .select('*, platform') // Sélectionne toutes les colonnes + platform spécifiquement
-      .single(); // S'assure qu'on récupère un seul enregistrement
+      .eq('id', id) // Removed user_id filter
+      .select('*, platform')
+      .single();
 
     if (error) {
       if (error.code === 'PGRST116') { // Code pour aucun résultat trouvé
-        return res.status(404).json({ error: 'Clé API non trouvée ou accès non autorisé' });
+        return res.status(404).json({ error: 'Clé API non trouvée.' });
       }
       throw error;
     }
 
-    await logAction(userId, 'update_api_key', `Clé API mise à jour pour la plateforme ${data.platform}`);
+    await logAction(req.user.id, 'update_api_key', `Clé API mise à jour pour la plateforme ${data.platform}`);
     res.json({ message: 'Clé API mise à jour avec succès', data });
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la clé API:', error);
@@ -106,18 +102,16 @@ exports.updateApiKey = async (req, res) => {
 
 exports.deleteApiKey = async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id;
 
   try {
     const { error } = await supabase
       .from('api_configurations')
       .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+      .eq('id', id); // Removed user_id filter
 
     if (error) throw error;
 
-    await logAction(userId, 'delete_api_key', `Clé API supprimée pour l'ID ${id}`);
+    await logAction(req.user.id, 'delete_api_key', `Clé API supprimée pour l'ID ${id}`);
     res.json({ message: 'Clé API supprimée avec succès' });
   } catch (error) {
     console.error('Erreur lors de la suppression de la clé API:', error);
