@@ -40,10 +40,23 @@ exports.getApiKeys = async (req, res) => {
 
     if (error) throw error;
 
-    const decryptedData = data.map((item) => ({
-      ...item,
-      keys: JSON.parse(decrypt(item.keys)),
-    }));
+    const decryptedData = data.map((item) => {
+      const keys = JSON.parse(decrypt(item.keys));
+      // Masquer les clés (exemple : "sk-...2lwA")
+      const maskedKeys = Object.fromEntries(
+        Object.entries(keys).map(([key, value]) => [
+          key,
+          typeof value === 'string' && value.length > 6
+            ? `${value.slice(0, 3)}...${value.slice(-4)}`
+            : value,
+        ])
+      );
+
+      return {
+        ...item,
+        keys: maskedKeys,
+      };
+    });
 
     res.json({ message: 'Clés API récupérées avec succès', data: decryptedData });
   } catch (error) {
