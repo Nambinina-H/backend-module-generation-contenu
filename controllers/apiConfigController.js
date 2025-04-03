@@ -42,13 +42,14 @@ exports.getApiKeys = async (req, res) => {
 
     const decryptedData = data.map((item) => {
       const keys = JSON.parse(decrypt(item.keys));
-      // Masquer les clés (exemple : "sk-...2lwA")
+      // Masquer les clés sauf pour les clés spécifiées
+      const unmaskedKeys = ["facebook", "linkedin", "instagram", "twitter", "clientId", "redirectUri", "url"];
       const maskedKeys = Object.fromEntries(
         Object.entries(keys).map(([key, value]) => [
           key,
-          typeof value === 'string' && value.length > 6
-            ? `${value.slice(0, 14)}...${value.slice(-4)}`
-            : value,
+          unmaskedKeys.includes(key) || typeof value !== 'string' || value.length <= 6
+            ? value
+            : `${value.slice(0, 14)}...${value.slice(-4)}`,
         ])
       );
 
