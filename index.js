@@ -22,6 +22,7 @@ const logRoutes = require('./routes/logRoutes');
 const imageRoutes = require("./routes/imageRoutes");
 const mediaRoutes = require('./routes/mediaRoutes');
 const apiConfigRoutes = require('./routes/apiConfigRoutes');
+const wordpressOAuthRoutes = require('./routes/oauth/wordpressRoutes');
 
 // Utilisation des routes
 app.use('/auth', authRoutes);
@@ -31,6 +32,7 @@ app.use('/logs', logRoutes);
 app.use("/image", imageRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/config', apiConfigRoutes);
+app.use('/oauth/wordpress', wordpressOAuthRoutes);
 
 const { initializeSupabaseClient } = require('./utils/scheduler');
 const ApiConfigService = require('./services/apiConfigService');
