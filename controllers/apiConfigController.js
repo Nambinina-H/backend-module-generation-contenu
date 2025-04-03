@@ -47,7 +47,7 @@ exports.getApiKeys = async (req, res) => {
         Object.entries(keys).map(([key, value]) => [
           key,
           typeof value === 'string' && value.length > 6
-            ? `${value.slice(0, 3)}...${value.slice(-4)}`
+            ? `${value.slice(0, 14)}...${value.slice(-4)}`
             : value,
         ])
       );
