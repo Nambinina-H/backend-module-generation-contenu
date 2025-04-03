@@ -3,8 +3,17 @@ const ApiConfigService = require('./apiConfigService');
 
 const getOpenAIClient = () => {
   const apiKeys = ApiConfigService.getKeyFromCache('openai');
+  console.log('🔑 Clés OpenAI récupérées:', {
+    hasApiKey: !!apiKeys?.apiKey,
+    keyLength: apiKeys?.apiKey?.length
+  });
+  
+  if (!apiKeys?.apiKey) {
+    console.warn('⚠️ Aucune clé API OpenAI trouvée dans le cache');
+  }
+  
   return new OpenAI({
-    apiKey: apiKeys?.apiKey || process.env.OPENAI_API_KEY, // Corrected from apiKeys?.api_key to apiKeys?.apiKey
+    apiKey: apiKeys?.apiKey,
   });
 };
 

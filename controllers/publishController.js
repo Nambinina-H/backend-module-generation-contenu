@@ -1,7 +1,23 @@
+const ApiConfigService = require('../services/apiConfigService');
 const { createClient } = require("@supabase/supabase-js");
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const { publishToPlatform } = require("../services/makeService");
-const { logAction } = require("../services/logService"); // Import logAction
+const { logAction } = require("../services/logService");
+
+const getSupabaseClient = () => {
+  const apiKeys = ApiConfigService.getKeyFromCache('supabase');
+  console.log('🔑 Clés Supabase récupérées:', {
+    hasUrl: !!apiKeys?.url,
+    hasKey: !!apiKeys?.key
+  });
+  
+  if (!apiKeys?.url || !apiKeys?.key) {
+    console.warn('⚠️ Configuration Supabase manquante dans le cache');
+    // Fallback sur les variables d'environnement
+    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  }
+  
+  return createClient(apiKeys.url, apiKeys.key);
+};
 
 /**
  * Planifie la publication d'un contenu.
@@ -11,6 +27,7 @@ const { logAction } = require("../services/logService"); // Import logAction
 exports.schedulePublication = async (req, res) => {
   const { content, platforms, type, mediaUrl, scheduleTime } = req.body;
   const userId = req.user.id;
+  const supabase = getSupabaseClient();
 
   if (!platforms || !Array.isArray(platforms) || !type || !scheduleTime) {
     return res.status(400).json({ error: "Merci de fournir un tableau de plateformes, le type de contenu et une date de planification." });
@@ -90,6 +107,7 @@ exports.publishNow = async (req, res) => {
 exports.cancelScheduledPublication = async (req, res) => {
   const { contentId } = req.body;
   const userId = req.user.id;
+  const supabase = getSupabaseClient();
 
   if (!contentId) {
     return res.status(400).json({ error: "Merci de fournir un contentId." });

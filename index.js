@@ -32,10 +32,12 @@ app.use("/image", imageRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/config', apiConfigRoutes);
 
+const { initializeSupabaseClient } = require('./utils/scheduler');
 const ApiConfigService = require('./services/apiConfigService');
 
 // Charger les clés API au démarrage
 ApiConfigService.loadApiKeys().then(() => {
+  initializeSupabaseClient(); // Initialiser le client Supabase pour le scheduler
   const PORT = process.env.PORT || 3001;
   const server = app.listen(PORT, () => {
     console.log(`Backend lancé sur le port ${PORT}`);

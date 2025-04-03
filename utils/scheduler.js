@@ -1,9 +1,28 @@
 const cron = require('node-cron');
 const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const ApiConfigService = require('../services/apiConfigService');
 const { publishToPlatform } = require('../services/makeService');
 
+let supabase = null;
+
+// Fonction pour initialiser le client Supabase
+const initializeSupabaseClient = () => {
+  const supabaseKeys = ApiConfigService.getKeyFromCache('supabase');
+  if (supabaseKeys?.url && supabaseKeys?.key) {
+    supabase = createClient(supabaseKeys.url, supabaseKeys.key);
+    console.log('🔄 Client Supabase initialisé pour le scheduler');
+  } else {
+    console.error('❌ Clés Supabase manquantes pour le scheduler');
+  }
+};
+
+// Planification des tâches
 const scheduledTask = cron.schedule('* * * * *', async () => {
+  if (!supabase) {
+    console.error('❌ Supabase non initialisé. Impossible d\'exécuter le scheduler.');
+    return;
+  }
+
   const { data: scheduledContents, error } = await supabase
     .from('content')
     .select('*')
@@ -32,4 +51,4 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
   }
 });
 
-module.exports = scheduledTask;
+module.exports = { scheduledTask, initializeSupabaseClient };

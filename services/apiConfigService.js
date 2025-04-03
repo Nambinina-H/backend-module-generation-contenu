@@ -26,9 +26,7 @@ class ApiConfigService {
   }
 
   static initRealtimeSubscription() {
-    const channel = supabase
-      .channel('api-config-changes')
-      .on('postgres_changes', 
+    const channel = supabase.channel('api-config-changes').on('postgres_changes', 
         {
           event: '*', // Écouter tous les événements (INSERT, UPDATE, DELETE)
           schema: 'public',

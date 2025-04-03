@@ -1,9 +1,25 @@
 const OpenAI = require("openai");
 const platformConfig = require('./platformConfig');
+const ApiConfigService = require('./apiConfigService');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const getOpenAIClient = () => {
+  const apiKeys = ApiConfigService.getKeyFromCache('openai');
+  console.log('🔑 Clés OpenAI récupérées:', {
+    hasApiKey: !!apiKeys?.apiKey,
+    keyLength: apiKeys?.apiKey?.length
+  });
+  
+  if (!apiKeys?.apiKey) {
+    console.warn('⚠️ Aucune clé API OpenAI trouvée dans le cache');
+    return new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  
+  return new OpenAI({
+    apiKey: apiKeys.apiKey,
+  });
+};
 
 /**
  * Adapte un contenu pour une plateforme donnée en respectant la longueur max.
@@ -13,6 +29,7 @@ const openai = new OpenAI({
  * @returns {Promise<string>} - Contenu adapté.
  */
 exports.adaptContentForPlatform = async (baseContent, platform, longueurPercentage) => {
+  const openai = getOpenAIClient();
   const config = platformConfig[platform.toLowerCase()] || {};
   let targetLength = null;
   

@@ -1,11 +1,28 @@
 // controllers/contentController.js
 const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const ApiConfigService = require('../services/apiConfigService');
 const { generateContent } = require('../services/contentGenerator');
 const { logAction } = require('../services/logService');
 
+// Fonction pour récupérer le client Supabase
+const getSupabaseClient = () => {
+  const apiKeys = ApiConfigService.getKeyFromCache('supabase');
+  console.log('🔑 Clés Supabase récupérées:', {
+    hasUrl: !!apiKeys?.url,
+    hasKey: !!apiKeys?.key
+  });
+
+  if (!apiKeys?.url || !apiKeys?.key) {
+    console.warn('⚠️ Configuration Supabase manquante dans le cache');
+    // Fallback sur les variables d'environnement
+    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  }
+
+  return createClient(apiKeys.url, apiKeys.key);
+};
 
 exports.generate = async (req, res) => {
+  const supabase = getSupabaseClient();
   const { type, keywords, personalization } = req.body;
   const userId = req.user.id;
 
@@ -49,9 +66,8 @@ exports.generate = async (req, res) => {
   }
 };
 
-
-// Récupérer les contenus de l'utilisateur connecté
 exports.listUserContent = async (req, res) => {
+  const supabase = getSupabaseClient();
   const userId = req.user.id; // ID de l'utilisateur connecté
 
   try {
@@ -72,9 +88,8 @@ exports.listUserContent = async (req, res) => {
   }
 };
 
-
-// Modifie les contenus de l'utilisateur connecté
 exports.updateContent = async (req, res) => {
+  const supabase = getSupabaseClient();
   const { contentId } = req.params;
   const { type, keywords, personalization, status } = req.body;
   const userId = req.user.id;
@@ -116,10 +131,8 @@ exports.updateContent = async (req, res) => {
   }
 };
 
-
-
-// Supprime les contenus de l'utilisateur connecté
 exports.deleteContent = async (req, res) => {
+  const supabase = getSupabaseClient();
   const { contentId } = req.params;
   const userId = req.user.id;
   const userRole = req.user.role; // Récupérer le rôle de l'utilisateur
@@ -150,7 +163,7 @@ exports.deleteContent = async (req, res) => {
     }
 
     // Enregistrer le log
-  await logAction(userId, 'delete', `Contenu ${contentId} supprimé`);
+    await logAction(userId, 'delete', `Contenu ${contentId} supprimé`);
 
     res.json({ message: 'Contenu supprimé avec succès' });
   } catch (error) {

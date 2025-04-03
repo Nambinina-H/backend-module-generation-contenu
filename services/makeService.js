@@ -1,12 +1,26 @@
 const axios = require("axios");
+const ApiConfigService = require('./apiConfigService');
 
-// Dictionnaire des webhooks associés aux plateformes
-const webhooks = {
-  facebook: process.env.MAKE_WEBHOOK_FACEBOOK,
-  linkedin: process.env.MAKE_WEBHOOK_LINKEDIN,
-  instagram: process.env.MAKE_WEBHOOK_INSTAGRAM,
-  twitter: process.env.MAKE_WEBHOOK_TWITTER,
-  wordpress: process.env.MAKE_WEBHOOK_WORDPRESS,
+const getMakeWebhooks = () => {
+  const apiKeys = ApiConfigService.getKeyFromCache('make');
+  console.log('🔑 Webhooks Make.com récupérés:', {
+    hasWebhooks: !!apiKeys,
+    platforms: apiKeys ? Object.keys(apiKeys) : []
+  });
+  
+  if (!apiKeys) {
+    console.warn('⚠️ Aucun webhook Make.com trouvé dans le cache');
+    // Fallback sur les variables d'environnement
+    return {
+      facebook: process.env.MAKE_WEBHOOK_FACEBOOK,
+      linkedin: process.env.MAKE_WEBHOOK_LINKEDIN,
+      instagram: process.env.MAKE_WEBHOOK_INSTAGRAM,
+      twitter: process.env.MAKE_WEBHOOK_TWITTER,
+      wordpress: process.env.MAKE_WEBHOOK_WORDPRESS,
+    };
+  }
+  
+  return apiKeys;
 };
 
 /**
@@ -18,6 +32,7 @@ const webhooks = {
  * @returns {Promise<Object>} - Réponse de Make.com.
  */
 exports.publishToPlatform = async (platform, content, mediaUrl, type) => {
+  const webhooks = getMakeWebhooks();
   const webhookUrl = webhooks[platform.toLowerCase()];
 
   if (!webhookUrl) {
