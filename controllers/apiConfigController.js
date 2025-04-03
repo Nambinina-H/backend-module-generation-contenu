@@ -63,16 +63,26 @@ exports.updateApiKey = async (req, res) => {
 
   try {
     const encryptedKeys = encrypt(JSON.stringify(keys));
+    // Une seule requête qui vérifie l'existence, la propriété et met à jour
     const { data, error } = await supabase
       .from('api_configurations')
-      .update({ keys: encryptedKeys, updated_at: new Date().toISOString() })
+      .update({ 
+        keys: encryptedKeys, 
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', id)
-      .eq('user_id', userId)
-      .select();
+      .eq('user_id', userId) // Vérifie la propriété
+      .select('*, platform') // Sélectionne toutes les colonnes + platform spécifiquement
+      .single(); // S'assure qu'on récupère un seul enregistrement
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST116') { // Code pour aucun résultat trouvé
+        return res.status(404).json({ error: 'Clé API non trouvée ou accès non autorisé' });
+      }
+      throw error;
+    }
 
-    await logAction(userId, 'update_api_key', `Clé API mise à jour pour l'ID ${id}`);
+    await logAction(userId, 'update_api_key', `Clé API mise à jour pour la plateforme ${data.platform}`);
     res.json({ message: 'Clé API mise à jour avec succès', data });
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la clé API:', error);
