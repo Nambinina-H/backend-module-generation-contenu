@@ -51,7 +51,7 @@ ApiConfigService.loadApiKeys().then(() => {
 
 // Configuraton CORS pour autoriser uniquement le front-end sur Vercel
 const corsOptions = {
-  origin: '*', // URL de votre front-end
+  origin: 'https://module-generation-contenu.vercel.app', // URL de votre front-end
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
