@@ -48,6 +48,30 @@ class LumaAIService {
       throw error;
     }
   }
+
+  static async getCredits() {
+    const url = 'https://api.lumalabs.ai/dream-machine/v1/credits';
+    const options = {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        authorization: `Bearer ${process.env.LUMAAI_API_KEY}`
+      }
+    };
+
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch credits: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log('🎯 LumaAI Credits:', data);
+      return data;
+    } catch (error) {
+      console.error('🚨 Error fetching LumaAI credits:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = LumaAIService;
