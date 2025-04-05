@@ -72,6 +72,39 @@ class LumaAIService {
       throw error;
     }
   }
+
+  static async getGenerationById(id) {
+    try {
+      const generation = await client.generations.get(id);
+      console.log('🎯 Génération récupérée:', generation);
+      return generation;
+    } catch (error) {
+      console.error('🚨 Erreur lors de la récupération de la génération:', error.message);
+      throw new Error('Impossible de récupérer la génération demandée.');
+    }
+  }
+
+  static async listGenerations() {
+    try {
+      const generations = await client.generations.list();
+      console.log('📋 Liste des générations:', generations);
+      return generations;
+    } catch (error) {
+      console.error('🚨 Erreur lors de la récupération des générations:', error.message);
+      throw new Error('Impossible de récupérer la liste des générations.');
+    }
+  }
+
+  static async deleteGeneration(id) {
+    try {
+      await client.generations.delete(id);
+      console.log(`🗑️ Génération supprimée: ${id}`);
+      return { message: `La génération avec l'ID ${id} a été supprimée avec succès.` };
+    } catch (error) {
+      console.error('🚨 Erreur lors de la suppression de la génération:', error.message);
+      throw new Error('Impossible de supprimer la génération demandée.');
+    }
+  }
 }
 
 module.exports = LumaAIService;
