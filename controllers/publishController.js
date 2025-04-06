@@ -157,11 +157,15 @@ exports.cancelScheduledPublication = async (req, res) => {
  * @param {Object} res - Réponse Express.
  */
 exports.publishToWordPress = async (req, res) => {
-  const { content, mediaUrl, type, date, title } = req.body; // Ajout de `date` et `title`
+  const { content, mediaUrl, type, date, title, status } = req.body; // Ajout de `status`
   const userId = req.user.id;
 
-  if (!content || !type) {
-    return res.status(400).json({ error: 'Le contenu et le type sont obligatoires.' });
+  if (!content || !type || !status) {
+    return res.status(400).json({ error: 'Le contenu, le type et le statut sont obligatoires.' });
+  }
+
+  if (!['publish', 'future'].includes(status)) {
+    return res.status(400).json({ error: 'Le statut doit être soit "publish" soit "future".' });
   }
 
   try {
@@ -183,7 +187,7 @@ exports.publishToWordPress = async (req, res) => {
     // Construire les données pour la publication
     const postData = {
       content,
-      status: 'publish', // Publier immédiatement
+      status, // Utiliser le statut fourni en entrée
       date, // Ajout de la date
       title, // Ajout du titre
     };
