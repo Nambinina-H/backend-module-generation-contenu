@@ -209,7 +209,7 @@ exports.publishToWordPress = async (req, res) => {
     );
 
     // Enregistrer le log de publication
-    await logAction(userId, 'publish_wordpress', `Contenu publié sur WordPress avec l'ID ${response.data.ID}`);
+    await logAction(userId, 'publish_wordpress', `Contenu publié sur WordPress ${response.data.URL}`);
 
     res.json({ message: 'Contenu publié avec succès sur WordPress', post: response.data });
   } catch (error) {
