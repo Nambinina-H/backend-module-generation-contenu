@@ -1,6 +1,7 @@
 // controllers/authController.js
 const { supabase, supabaseAdmin } = require('../services/supabaseService');
 const { logAction } = require('../services/logService'); // Import logAction
+const axios = require('axios'); // Importer axios pour effectuer la requête HTTP
 
 // Inscription d'un utilisateur
 exports.register = async (req, res) => {
@@ -74,16 +75,27 @@ exports.login = async (req, res) => {
     return res.status(500).json({ error: 'Impossible de récupérer le rôle utilisateur.' });
   }
 
-  // Ajouter le rôle personnalisé à l'objet utilisateur
+  // Vérifier si l'utilisateur est connecté à WordPress
+  const { data: wordpressConfig, error: wordpressError } = await supabase
+    .from('api_configurations')
+    .select('id')
+    .eq('user_id', data.user.id)
+    .eq('platform', 'wordPressClient')
+    .single();
+
+  const isWordPressConnected = !wordpressError && wordpressConfig;
+
+  // Ajouter le rôle personnalisé et l'état de connexion WordPress à l'objet utilisateur
   const userWithRole = {
     ...data.user,
     app_role: userProfile.role, // Renommer le rôle pour éviter les conflits
+    isWordPressConnected, // Ajouter l'état de connexion WordPress
   };
 
   // Enregistrer le log de connexion
   await logAction(data.user.id, 'login', `Utilisateur ${email} connecté`);
 
-  // Retourner la réponse avec le rôle inclus
+  // Retourner la réponse avec le rôle et l'état de connexion WordPress inclus
   res.json({
     message: 'Connexion réussie',
     user: userWithRole,
