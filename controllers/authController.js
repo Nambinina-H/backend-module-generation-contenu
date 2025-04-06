@@ -78,7 +78,7 @@ exports.login = async (req, res) => {
   // Vérifier si l'utilisateur est connecté à WordPress
   const { data: wordpressConfig, error: wordpressError } = await supabase
     .from('api_configurations')
-    .select('id')
+    .select('*')
     .eq('user_id', data.user.id)
     .eq('platform', 'wordPressClient')
     .single();
