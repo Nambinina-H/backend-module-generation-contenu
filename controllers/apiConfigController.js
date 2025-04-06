@@ -29,11 +29,14 @@ exports.addApiKey = async (req, res) => {
 };
 
 exports.getApiKeys = async (req, res) => {
-  const { platform } = req.query;
+  const { platform, user_id } = req.query; // Ajout de user_id dans les paramètres de requête
 
   try {
-    let query = supabase.from('api_configurations').select('*'); // Removed user_id filter
+    let query = supabase.from('api_configurations').select('*');
+
+    // Appliquer les filtres si fournis
     if (platform) query = query.eq('platform', platform);
+    if (user_id) query = query.eq('user_id', user_id);
 
     const { data, error } = await query;
 
