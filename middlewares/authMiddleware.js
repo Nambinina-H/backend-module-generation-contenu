@@ -28,7 +28,17 @@ exports.verifyToken = async (req, res, next) => {
     return res.status(500).json({ error: 'Impossible de récupérer le rôle utilisateur.' });
   }
 
-  // Ajouter les infos utilisateur et son rôle à `req.user`
-  req.user = { ...data.user, role: userProfile.role };
+  // Vérifier si l'utilisateur est connecté à WordPress
+  const { data: wordpressConfig, error: wordpressError } = await supabase
+    .from('api_configurations')
+    .select('*')
+    .eq('user_id', data.user.id)
+    .eq('platform', 'wordPressClient')
+    .single();
+
+  const isWordPressConnected = !wordpressError && wordpressConfig;
+
+  // Ajouter les infos utilisateur, son rôle et l'état de connexion WordPress à `req.user`
+  req.user = { ...data.user, role: userProfile.role, isWordPressConnected };
   next();
 };

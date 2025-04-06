@@ -432,6 +432,44 @@ const apiKeys = ApiConfigService.getKeyFromCache('platform_name');
 
 ---
 
+### Publish
+
+#### Publier sur WordPress
+- **Méthode** : `POST`
+- **URL** : `/publish/wordpress`
+- **Description** : Publie un contenu sur WordPress.
+- **Headers** :
+  - `Authorization: Bearer <votre_token>`
+- **Body (JSON)** :
+  ```json
+  {
+    "content": "Voici un exemple de contenu.",
+    "mediaUrl": "https://example.com/image.jpg",
+    "type": "text-image"
+  }
+  ```
+  - `content` (obligatoire) : Contenu textuel à publier.
+  - `mediaUrl` (optionnel) : URL du média (image ou vidéo).
+  - `type` (obligatoire) : Type de contenu (`text`, `text-image`, `text-video`).
+- **Réponse (succès)** :
+  ```json
+  {
+    "message": "Contenu publié avec succès sur WordPress",
+    "post": {
+      "ID": 12345,
+      "URL": "https://example.wordpress.com/2023/10/01/example-post/"
+    }
+  }
+  ```
+- **Réponse (erreur)** :
+  ```json
+  {
+    "error": "Erreur lors de la publication sur WordPress."
+  }
+  ```
+
+---
+
 ## Contribution
 Les contributions sont les bienvenues. Veuillez soumettre une pull request pour toute amélioration ou correction.
 

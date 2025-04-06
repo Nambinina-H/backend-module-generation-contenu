@@ -2,6 +2,8 @@ const ApiConfigService = require('../services/apiConfigService');
 const { createClient } = require("@supabase/supabase-js");
 const { publishToPlatform } = require("../services/makeService");
 const { logAction } = require("../services/logService");
+const axios = require('axios');
+const { decrypt } = require('../utils/encryptionUtil');
 
 const getSupabaseClient = () => {
   const apiKeys = ApiConfigService.getKeyFromCache('supabase');
@@ -146,5 +148,73 @@ exports.cancelScheduledPublication = async (req, res) => {
   } catch (error) {
     console.error("🚨 Erreur d'annulation de publication:", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Publie un contenu sur WordPress.
+ * @param {Object} req - Requête Express.
+ * @param {Object} res - Réponse Express.
+ */
+exports.publishToWordPress = async (req, res) => {
+  const { content, mediaUrl, type } = req.body;
+  const userId = req.user.id;
+
+  if (!content || !type) {
+    return res.status(400).json({ error: 'Le contenu et le type sont obligatoires.' });
+  }
+
+  try {
+    // Vérifier si l'utilisateur est connecté à WordPress
+    const wordpressConfig = req.user.isWordPressConnected;
+    const tesa = req.user;
+    console.log('🔍 tesa:', { tesa }); 
+
+    if (!wordpressConfig || !wordpressConfig.keys) {
+      console.log('🔍 Vérification WordPress Config:', { wordpressConfig }); // Ajout du log
+      return res.status(400).json({ error: 'Vous n\'êtes pas connecté à WordPress. Veuillez connecter votre compte WordPress pour continuer.' });
+    }
+
+    // Décrypter les clés WordPress
+    const decryptedKeys = JSON.parse(decrypt(wordpressConfig.keys));
+    const { access_token, blog_id } = decryptedKeys;
+
+    if (!access_token || !blog_id) {
+      return res.status(400).json({ error: 'Les informations WordPress sont incomplètes.' });
+    }
+
+    // Construire les données pour la publication
+    const postData = {
+      content,
+      status: 'publish', // Publier immédiatement
+    };
+
+    if (type === 'text-image' || type === 'text-video') {
+      if (!mediaUrl) {
+        return res.status(400).json({ error: 'L\'URL du média est obligatoire pour ce type de contenu.' });
+      }
+
+      // Ajouter le média au contenu
+      postData.media_urls = [mediaUrl];
+    }
+
+    // Appeler l'API WordPress pour publier le post
+    const response = await axios.post(
+      `https://public-api.wordpress.com/rest/v1.1/sites/${blog_id}/posts/new`,
+      postData,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    // Enregistrer le log de publication
+    await logAction(userId, 'publish_wordpress', `Contenu publié sur WordPress avec l'ID ${response.data.ID}`);
+
+    res.json({ message: 'Contenu publié avec succès sur WordPress', post: response.data });
+  } catch (error) {
+    console.error('🚨 Erreur lors de la publication sur WordPress:', error.message);
+    res.status(500).json({ error: 'Erreur lors de la publication sur WordPress.' });
   }
 };

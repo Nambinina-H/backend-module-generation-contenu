@@ -75,27 +75,16 @@ exports.login = async (req, res) => {
     return res.status(500).json({ error: 'Impossible de récupérer le rôle utilisateur.' });
   }
 
-  // Vérifier si l'utilisateur est connecté à WordPress
-  const { data: wordpressConfig, error: wordpressError } = await supabase
-    .from('api_configurations')
-    .select('*')
-    .eq('user_id', data.user.id)
-    .eq('platform', 'wordPressClient')
-    .single();
-
-  const isWordPressConnected = !wordpressError && wordpressConfig;
-
-  // Ajouter le rôle personnalisé et l'état de connexion WordPress à l'objet utilisateur
+  // Ajouter le rôle personnalisé à l'objet utilisateur
   const userWithRole = {
     ...data.user,
     app_role: userProfile.role, // Renommer le rôle pour éviter les conflits
-    isWordPressConnected, // Ajouter l'état de connexion WordPress
   };
 
   // Enregistrer le log de connexion
   await logAction(data.user.id, 'login', `Utilisateur ${email} connecté`);
 
-  // Retourner la réponse avec le rôle et l'état de connexion WordPress inclus
+  // Retourner la réponse avec le rôle inclus
   res.json({
     message: 'Connexion réussie',
     user: userWithRole,
