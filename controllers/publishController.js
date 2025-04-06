@@ -157,7 +157,7 @@ exports.cancelScheduledPublication = async (req, res) => {
  * @param {Object} res - Réponse Express.
  */
 exports.publishToWordPress = async (req, res) => {
-  const { content, mediaUrl, type } = req.body;
+  const { content, mediaUrl, type, date, title } = req.body; // Ajout de `date` et `title`
   const userId = req.user.id;
 
   if (!content || !type) {
@@ -167,11 +167,8 @@ exports.publishToWordPress = async (req, res) => {
   try {
     // Vérifier si l'utilisateur est connecté à WordPress
     const wordpressConfig = req.user.isWordPressConnected;
-    const tesa = req.user;
-    console.log('🔍 tesa:', { tesa }); 
 
     if (!wordpressConfig || !wordpressConfig.keys) {
-      console.log('🔍 Vérification WordPress Config:', { wordpressConfig }); // Ajout du log
       return res.status(400).json({ error: 'Vous n\'êtes pas connecté à WordPress. Veuillez connecter votre compte WordPress pour continuer.' });
     }
 
@@ -187,6 +184,8 @@ exports.publishToWordPress = async (req, res) => {
     const postData = {
       content,
       status: 'publish', // Publier immédiatement
+      date, // Ajout de la date
+      title, // Ajout du titre
     };
 
     if (type === 'text-image' || type === 'text-video') {
