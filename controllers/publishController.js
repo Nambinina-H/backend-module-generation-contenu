@@ -213,8 +213,21 @@ exports.publishToWordPress = async (req, res) => {
     );
 
     // Enregistrer le log de publication ou de planification
+    const formatDate = (isoDate) => {
+      const date = new Date(isoDate);
+      const options = { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+      };
+      return date.toLocaleString('fr-FR', options).replace(',', '');
+    };
+
+    const formattedDate = formatDate(response.data.date);
     const logMessage = status === 'future' 
-      ? `Contenu planifié le ${response.data.date} pour WordPress ${response.data.URL}` 
+      ? `Contenu planifié le ${formattedDate} pour WordPress ${response.data.URL}` 
       : `Contenu publié sur WordPress ${response.data.URL}`;
     await logAction(userId, 'publish_wordpress', logMessage);
 
