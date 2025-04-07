@@ -227,8 +227,8 @@ exports.publishToWordPress = async (req, res) => {
 
     const formattedDate = formatDate(response.data.date);
     const logMessage = status === 'future' 
-      ? `Contenu planifié le ${formattedDate} pour WordPress ${response.data.URL}` 
-      : `Contenu publié sur WordPress ${response.data.URL}`;
+      ? `Contenu planifié le ${formattedDate} : ${response.data.URL}` 
+      : `Contenu publié sur ${response.data.URL}`;
     await logAction(userId, 'publish_wordpress', logMessage);
 
     res.json({ message: 'Contenu traité avec succès sur WordPress', post: response.data });
