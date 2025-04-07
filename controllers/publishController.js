@@ -212,10 +212,13 @@ exports.publishToWordPress = async (req, res) => {
       }
     );
 
-    // Enregistrer le log de publication
-    await logAction(userId, 'publish_wordpress', `Contenu publié sur WordPress ${response.data.URL}`);
+    // Enregistrer le log de publication ou de planification
+    const logMessage = status === 'future' 
+      ? `Contenu planifié pour WordPress ${response.data.URL}` 
+      : `Contenu publié sur WordPress ${response.data.URL}`;
+    await logAction(userId, 'publish_wordpress', logMessage);
 
-    res.json({ message: 'Contenu publié avec succès sur WordPress', post: response.data });
+    res.json({ message: 'Contenu traité avec succès sur WordPress', post: response.data });
   } catch (error) {
     console.error('🚨 Erreur lors de la publication sur WordPress:', error.message);
     res.status(500).json({ error: 'Erreur lors de la publication sur WordPress.' });
