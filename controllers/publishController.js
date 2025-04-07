@@ -214,7 +214,7 @@ exports.publishToWordPress = async (req, res) => {
 
     // Enregistrer le log de publication ou de planification
     const logMessage = status === 'future' 
-      ? `Contenu planifié pour WordPress ${response.data.URL}` 
+      ? `Contenu planifié le ${response.data.date} pour WordPress ${response.data.URL}` 
       : `Contenu publié sur WordPress ${response.data.URL}`;
     await logAction(userId, 'publish_wordpress', logMessage);
 
