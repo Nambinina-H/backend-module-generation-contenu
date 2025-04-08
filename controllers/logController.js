@@ -16,30 +16,55 @@ exports.getLogs = async (req, res) => {
     return res.status(400).json({ error: "Les paramètres `page` et `limit` doivent être des nombres positifs." });
   }
 
-  let query = supabase
-    .from('logs')
-    .select('*')
-    .order('created_at', { ascending: sort === 'date-asc' });
+  try {
+    // Construire la requête de base
+    let baseQuery = supabase.from('logs').select('*', { count: 'exact' });
 
-  // ✅ Appliquer les filtres si fournis
-  if (user_id) {
-    query = query.eq('user_id', user_id);
+    // Appliquer les filtres
+    if (user_id) {
+      baseQuery = baseQuery.eq('user_id', user_id);
+    }
+    if (action) {
+      baseQuery = baseQuery.eq('action', action);
+    }
+
+    // Récupérer le nombre total de logs avec les filtres
+    const { count, error: countError } = await baseQuery;
+
+    if (countError) {
+      console.error("🚨 Erreur lors du comptage des logs:", countError);
+      return res.status(500).json({ error: countError.message });
+    }
+
+    // Calculer la pagination
+    const totalPages = Math.ceil(count / limit);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    // Récupérer les logs paginés
+    const { data, error } = await baseQuery
+      .order('created_at', { ascending: sort === 'date-asc' })
+      .range(from, to);
+
+    if (error) {
+      console.error("🚨 Erreur lors de la récupération des logs:", error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({
+      message: "Logs récupérés avec succès",
+      logs: data,
+      pagination: {
+        page,
+        limit,
+        totalLogs: count,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error("🚨 Erreur serveur:", error);
+    res.status(500).json({ error: error.message });
   }
-  if (action) {
-    query = query.eq('action', action);
-  }
-
-  // ✅ Appliquer la pagination
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
-  query = query.range(from, to);
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("🚨 Erreur lors de la récupération des logs:", error);
-    return res.status(500).json({ error: error.message });
-  }
-
-  res.json({ message: "Logs récupérés avec succès", logs: data, page, limit });
 };
