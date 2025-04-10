@@ -1,4 +1,5 @@
 const LumaAIService = require('../services/lumaAIService');
+const { generateVideoDescription } = require('../services/contentGenerator');
 
 exports.generateVideo = async (req, res) => {
   const { prompt, resolution, duration } = req.body;
@@ -26,6 +27,22 @@ exports.getCredits = async (req, res) => {
   } catch (error) {
     console.error('🚨 Erreur lors de la récupération des crédits:', error.message);
     res.status(500).json({ error: 'Erreur lors de la récupération des crédits. Veuillez réessayer plus tard.' });
+  }
+};
+
+exports.generateVideoDescription = async (req, res) => {
+  const { keywords } = req.body;
+
+  if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+    return res.status(400).json({ error: 'Merci de fournir une liste de mots-clés.' });
+  }
+
+  try {
+    const description = await generateVideoDescription(keywords);
+    res.json({ message: 'Description générée avec succès', description });
+  } catch (error) {
+    console.error('🚨 Erreur lors de la génération de la description:', error.message);
+    res.status(500).json({ error: 'Erreur lors de la génération de la description. Veuillez réessayer plus tard.' });
   }
 };
 

@@ -18,6 +18,53 @@ const getOpenAIClient = () => {
 };
 
 /**
+ * Génère une description de vidéo en utilisant OpenAI.
+ * @param {Array<string>} keywords - Liste de mots-clés.
+ * @returns {Promise<string|null>} - La description générée.
+ */
+exports.generateVideoDescription = async (keywords) => {
+  // Vérification de la validité de l'entrée
+  if (!Array.isArray(keywords) || keywords.length === 0) {
+    console.error("Les mots-clés doivent être un tableau non vide.");
+    throw new Error("Invalid keywords");
+  }
+
+  const openai = getOpenAIClient();
+
+  // Amélioration du prompt pour obtenir une réponse plus détaillée et narrative
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Tu es un assistant spécialisé dans la rédaction de descriptions pour des vidéos générées par Luma Labs. Ton objectif est de produire des descriptions précises, immersives et visuelles, en utilisant uniquement les mots-clés fournis. Ne rajoute pas d'éléments non mentionnés.`
+        },
+        {
+          role: "user",
+          content: `Utilise les mots-clés suivants pour créer cette description : ${keywords.join(", ")}.La description doit refléter fidèlement ces mots-clés.`
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 500, // Limite du nombre de tokens pour mieux contrôler la réponse
+    });
+
+    // Vérifie que la réponse correspond à la structure attendue
+    if (response.choices && response.choices.length > 0 && response.choices[0].message) {
+      return response.choices[0].message.content.trim();
+    } else {
+      console.error("Réponse inattendue de l'API OpenAI:", response);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'appel à OpenAI :", error);
+    return null;
+  }
+};
+
+
+/**
  * Génère du contenu textuel en utilisant OpenAI.
  * @param {string} type - Le type de contenu ('text').
  * @param {Array<string>} keywords - Liste de mots-clés.
