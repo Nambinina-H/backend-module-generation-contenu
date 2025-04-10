@@ -7,7 +7,13 @@ const client = new LumaAI({ authToken: process.env.LUMAAI_API_KEY });
 class LumaAIService {
   static async generateVideo(prompt, model = 'ray-2', resolution = '720p', duration = '5s') {
     try {
-      let generation = await client.generations.create({ prompt, model, resolution, duration });
+      let generation = await client.generations.create({ 
+        prompt, 
+        model: 'ray-2', // Forcer l'utilisation de "ray-2"
+        resolution, 
+        duration,
+        callback_url: `${process.env.BASE_URL}/video/callback`, // URL de callback
+      });
       console.log('🎥 Video generation started:', generation.id);
 
       let completed = false;
@@ -103,6 +109,113 @@ class LumaAIService {
     } catch (error) {
       console.error('🚨 Erreur lors de la suppression de la génération:', error.message);
       throw new Error('Impossible de supprimer la génération demandée.');
+    }
+  }
+
+  static async extendVideo(id, prompt) {
+    try {
+      let generation = await client.generations.create({
+        prompt,
+        model: 'ray-2', // Forcer l'utilisation de "ray-2"
+        keyframes: {
+          frame0: {
+            type: 'generation',
+            id,
+          },
+        },
+        callback_url: `${process.env.BASE_URL}/video/callback`, // URL de callback
+      });
+      console.log('🎥 Extension de la vidéo commencée:', generation.id);
+
+      let completed = false;
+      while (!completed) {
+        generation = await client.generations.get(generation.id);
+
+        if (generation.state === 'completed') {
+          completed = true;
+        } else if (generation.state === 'failed') {
+          throw new Error(`Extension échouée: ${generation.failure_reason}`);
+        } else {
+          console.log('Extension en cours...');
+          await new Promise((r) => setTimeout(r, 3000)); // Attendre 3 secondes
+        }
+      }
+
+      console.log('🎥 Vidéo étendue avec succès:', generation.assets.video);
+      return generation;
+    } catch (error) {
+      console.error('🚨 Erreur lors de l\'extension de la vidéo:', error.message);
+      throw error;
+    }
+  }
+
+  static async reverseExtendVideo(id, prompt) {
+    try {
+      let generation = await client.generations.create({
+        prompt,
+        model: 'ray-2', // Forcer l'utilisation de "ray-2"
+        keyframes: {
+          frame1: {
+            type: 'generation',
+            id,
+          },
+        },
+        callback_url: `${process.env.BASE_URL}/video/callback`, // URL de callback
+      });
+      console.log('🎥 Extension inversée de la vidéo commencée:', generation.id);
+
+      let completed = false;
+      while (!completed) {
+        generation = await client.generations.get(generation.id);
+
+        if (generation.state === 'completed') {
+          completed = true;
+        } else if (generation.state === 'failed') {
+          throw new Error(`Extension inversée échouée: ${generation.failure_reason}`);
+        } else {
+          console.log('Extension inversée en cours...');
+          await new Promise((r) => setTimeout(r, 3000)); // Attendre 3 secondes
+        }
+      }
+
+      console.log('🎥 Vidéo étendue en sens inverse avec succès:', generation.assets.video);
+      return generation;
+    } catch (error) {
+      console.error('🚨 Erreur lors de l\'extension inversée de la vidéo:', error.message);
+      throw error;
+    }
+  }
+
+  static async addAudioToGeneration(id, prompt, negativePrompt = '', callbackUrl = `${process.env.BASE_URL}/video/callback`) {
+    try {
+      const url = `https://api.lumalabs.ai/dream-machine/v1/generations/${id}/audio`;
+      const body = {
+        generation_type: 'add_audio',
+        prompt,
+        negative_prompt: negativePrompt,
+        callback_url: callbackUrl, // Ajout du callback
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.LUMAAI_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to add audio: ${errorData.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('🎵 Audio added to generation:', data);
+      return data;
+    } catch (error) {
+      console.error('🚨 Error adding audio to generation:', error.message);
+      throw error;
     }
   }
 }

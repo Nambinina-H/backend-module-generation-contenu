@@ -8,5 +8,9 @@ router.get('/credits', verifyToken, videoController.getCredits);
 router.get('/generation/:id', verifyToken, videoController.getGenerationById);
 router.get('/generations', verifyToken, videoController.listGenerations);
 router.delete('/generation/:id', verifyToken, videoController.deleteGeneration);
+router.post('/extend', verifyToken, videoController.extendVideo);
+router.post('/reverse-extend', verifyToken, videoController.reverseExtendVideo);
+router.post('/callback', videoController.handleCallback);
+router.post('/generation/:id/audio', verifyToken, videoController.addAudio);
 
 module.exports = router;
