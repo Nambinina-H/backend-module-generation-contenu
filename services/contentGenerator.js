@@ -39,14 +39,14 @@ exports.generateVideoDescription = async (keywords) => {
       messages: [
         {
           role: "system",
-          content: `Tu es un assistant spécialisé dans la rédaction de descriptions pour des vidéos générées par Luma Labs. Ton objectif est de produire des descriptions précises, immersives et visuelles, en utilisant uniquement les mots-clés fournis. Ne rajoute pas d'éléments non mentionnés.`
+          content: `Tu es un expert dans la création de vidéos avec Luma Labs. Ton rôle est de créer des descriptions visuelles directement inspirées par les mots-clés fournis. La description doit être concise, strictement fidèle aux mots-clés, et ne doit pas inclure de détails ou éléments supplémentaires non mentionnés dans les mots-clés.`
         },
         {
           role: "user",
-          content: `Utilise les mots-clés suivants pour créer cette description : ${keywords.join(", ")}.La description doit refléter fidèlement ces mots-clés.`
+          content: `Crée une description pour une vidéo en utilisant les mots-clés suivants : ${keywords.join(", ")}. La description doit être strictement fidèle aux mots-clés, concise et visuelle, sans ajouter de détails ou interprétations.`
         },
       ],
-      temperature: 0.1,
+      temperature: 0,
       max_tokens: 500, // Limite du nombre de tokens pour mieux contrôler la réponse
     });
 
