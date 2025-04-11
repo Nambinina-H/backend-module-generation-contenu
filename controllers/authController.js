@@ -139,7 +139,7 @@ exports.setUserRole = async (req, res) => {
      // Enregistrer le log
   await logAction(req.user.id, 'update', `Changement de rôle de l'utilisateur ${userId} en ${newRole}`);
 
-    res.json({ message: `Rôle de l'utilisateur mis à jour en '${newRole}'.` });
+    res.json({ message: `Rôle de l'utilisateur mis à jour en '${newRole}'` });
   } catch (error) {
     console.error("🚨 Erreur serveur :", error);
     res.status(500).json({ error: error.message });
@@ -280,11 +280,15 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ error: "Utilisateur introuvable." });
     }
 
+    // Récupérer l'email de l'utilisateur
+    const { data: user, error: userFetchError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const userEmail = user?.user?.email || 'Email inconnu';
+
     // Enregistrer le log avant la suppression
     const actionBy = req.user.id === userId ? 'delete_own_account' : 'delete';
     const logMessage = req.user.id === userId
-      ? `Utilisateur ${userId} a supprimé son propre compte`
-      : `Utilisateur ${userId} supprimé par admin`;
+      ? `Utilisateur ${userEmail} a supprimé son propre compte`
+      : `Utilisateur ${userEmail} supprimé par admin`;
     await logAction(req.user.id, actionBy, logMessage);
 
     // Supprimer l'utilisateur de `auth.users` via Supabase Admin API
