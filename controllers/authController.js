@@ -23,6 +23,9 @@ exports.register = async (req, res) => {
   const { data, error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
+    if (error.message.includes('email_exists')) {
+      return res.status(400).json({ error: 'Cet email est déjà utilisé' });
+    }
     console.error('Erreur Supabase:', error.message);
     return res.status(400).json({ error: error.message });
   }
@@ -61,6 +64,9 @@ exports.login = async (req, res) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    if (error.message.includes('invalid_credentials')) {
+      return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
+    }
     return res.status(400).json({ error: error.message });
   }
 
