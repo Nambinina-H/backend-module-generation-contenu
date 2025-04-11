@@ -301,3 +301,41 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.user.id;
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'Ancien et nouveau mot de passe requis.' });
+  }
+
+  try {
+    // Vérifier l'ancien mot de passe
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: req.user.email,
+      password: oldPassword,
+    });
+
+    if (error) {
+      return res.status(400).json({ error: 'Ancien mot de passe incorrect.' });
+    }
+
+    // Mettre à jour le mot de passe
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Erreur lors de la mise à jour du mot de passe.' });
+    }
+
+    // Enregistrer le log
+    await logAction(userId, 'change_password', 'Mot de passe modifié avec succès.');
+
+    res.json({ message: 'Mot de passe modifié avec succès.' });
+  } catch (error) {
+    console.error('Erreur lors de la modification du mot de passe:', error);
+    res.status(500).json({ error: 'Erreur interne.' });
+  }
+};

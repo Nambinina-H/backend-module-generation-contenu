@@ -11,5 +11,6 @@ router.get('/profile', verifyToken, (req, res) => {
 router.put('/set-role', verifyToken, authController.setUserRole);
 router.get('/list-users', verifyToken, authController.listUsers);
 router.delete('/delete/:userId', verifyToken, authController.deleteUser);
+router.put('/change-password', verifyToken, authController.changePassword);
 
 module.exports = router;
