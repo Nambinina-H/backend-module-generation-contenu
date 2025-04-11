@@ -32,7 +32,7 @@ class LumaAIService {
 
       const videoUrl = generation.assets.video;
       console.log('🎥 Video generation completed:', videoUrl);
-      return videoUrl;
+      return { videoUrl, id: generation.id }; // Retourner l'URL de la vidéo et l'ID de la génération
     } catch (error) {
       console.error('🚨 Error during video generation:', error.message);
       throw error;

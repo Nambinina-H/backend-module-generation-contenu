@@ -9,8 +9,12 @@ exports.generateVideo = async (req, res) => {
   }
 
   try {
-    const videoUrl = await LumaAIService.generateVideo(prompt, 'ray-2', resolution, duration); // Forcer "ray-2"
-    res.json({ message: 'Video generated successfully', videoUrl });
+    const generation = await LumaAIService.generateVideo(prompt, 'ray-2', resolution, duration); // Forcer "ray-2"
+    res.json({ 
+      message: 'Video generated successfully', 
+      videoUrl: generation.videoUrl, 
+      id: generation.id // Inclure l'ID de la génération dans la réponse
+    });
   } catch (error) {
     console.error('🚨 Error generating video:', error.message);
     res.status(500).json({ error: error.message });
@@ -97,7 +101,11 @@ exports.extendVideo = async (req, res) => {
 
   try {
     const extendedVideo = await LumaAIService.extendVideo(id, prompt);
-    res.json({ message: 'Vidéo étendue avec succès', extendedVideo });
+    res.json({ 
+      message: 'Vidéo étendue avec succès', 
+      extendedVideoUrl: extendedVideo.assets.video, 
+      id: extendedVideo.id // Inclure l'ID de la génération étendue
+    });
   } catch (error) {
     console.error('🚨 Erreur lors de l\'extension de la vidéo:', error.message);
     res.status(500).json({ error: error.message });
@@ -113,7 +121,11 @@ exports.reverseExtendVideo = async (req, res) => {
 
   try {
     const reversedVideo = await LumaAIService.reverseExtendVideo(id, prompt);
-    res.json({ message: 'Vidéo étendue en sens inverse avec succès', reversedVideo });
+    res.json({ 
+      message: 'Vidéo étendue en sens inverse avec succès', 
+      reversedVideoUrl: reversedVideo.assets.video, 
+      id: reversedVideo.id // Inclure l'ID de la génération étendue en sens inverse
+    });
   } catch (error) {
     console.error('🚨 Erreur lors de l\'extension inversée de la vidéo:', error.message);
     res.status(500).json({ error: error.message });
