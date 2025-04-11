@@ -257,9 +257,9 @@ exports.deleteUser = async (req, res) => {
   const { userId } = req.params; // Récupérer l'ID de l'utilisateur à supprimer
   const adminRole = req.user.role;
 
-  // Vérifier que seul un admin peut supprimer un utilisateur
-  if (adminRole !== 'admin') {
-    return res.status(403).json({ error: "Accès refusé. Seuls les admins peuvent supprimer un utilisateur." });
+  // Vérifier si l'utilisateur est le propriétaire de son compte ou un admin
+  if (req.user.id !== userId && adminRole !== 'admin') {
+    return res.status(403).json({ error: "Accès refusé. Vous ne pouvez supprimer que votre propre compte ou être admin." });
   }
 
   try {
@@ -283,7 +283,11 @@ exports.deleteUser = async (req, res) => {
     }
 
     // Enregistrer le log
-    await logAction(req.user.id, 'delete', `Utilisateur ${userId} supprimé par admin`);
+    const actionBy = req.user.id === userId ? 'delete_own_account' : 'delete';
+    const logMessage = req.user.id === userId
+      ? `Utilisateur ${userId} a supprimé son propre compte`
+      : `Utilisateur ${userId} supprimé par admin`;
+    await logAction(req.user.id, actionBy, logMessage);
 
     res.json({ message: "Utilisateur supprimé avec succès." });
   } catch (error) {
