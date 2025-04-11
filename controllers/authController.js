@@ -280,6 +280,13 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ error: "Utilisateur introuvable." });
     }
 
+    // Enregistrer le log avant la suppression
+    const actionBy = req.user.id === userId ? 'delete_own_account' : 'delete';
+    const logMessage = req.user.id === userId
+      ? `Utilisateur ${userId} a supprimé son propre compte`
+      : `Utilisateur ${userId} supprimé par admin`;
+    await logAction(req.user.id, actionBy, logMessage);
+
     // Supprimer l'utilisateur de `auth.users` via Supabase Admin API
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
@@ -287,13 +294,6 @@ exports.deleteUser = async (req, res) => {
       console.error("🚨 Erreur lors de la suppression de l'utilisateur :", deleteError);
       return res.status(500).json({ error: deleteError.message });
     }
-
-    // Enregistrer le log
-    const actionBy = req.user.id === userId ? 'delete_own_account' : 'delete';
-    const logMessage = req.user.id === userId
-      ? `Utilisateur ${userId} a supprimé son propre compte`
-      : `Utilisateur ${userId} supprimé par admin`;
-    await logAction(req.user.id, actionBy, logMessage);
 
     res.json({ message: "Utilisateur supprimé avec succès." });
   } catch (error) {
