@@ -2,6 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const app = express();
 
 // Importer et exécuter le scheduler pour la planification des publications
@@ -13,6 +14,17 @@ const { verifyToken } = require('./middlewares/authMiddleware');
 // Middlewares globaux
 app.use(express.json());
 app.use(cors());
+
+// Configuration de express-session
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'twitter_oauth_secret_key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // Secure en production uniquement
+    maxAge: 15 * 60 * 1000 // 15 minutes
+  }
+}));
 
 // Importer les routes
 const authRoutes = require('./routes/authRoutes');
