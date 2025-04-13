@@ -4,6 +4,10 @@ const { encrypt, decrypt } = require('../../utils/encryptionUtil');
 
 class TwitterOAuthService {
   static createClient() {
+    console.log('🔑 Création du client Twitter avec:', {
+      clientIdLength: process.env.TWITTER_CLIENT_ID?.length,
+      clientSecretLength: process.env.TWITTER_CLIENT_SECRET?.length,
+    });
     return new TwitterApi({
       clientId: process.env.TWITTER_CLIENT_ID,
       clientSecret: process.env.TWITTER_CLIENT_SECRET,
@@ -15,15 +19,30 @@ class TwitterOAuthService {
       const client = this.createClient();
       // Générer les états de façon aléatoire pour la sécurité CSRF
       const state = Math.random().toString(36).substring(2, 15);
-      const codeVerifier = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      // Améliorer le codeVerifier pour qu'il soit plus long et conforme aux spécifications PKCE
+      const codeVerifier = Math.random().toString(36).substring(2, 15) + 
+                          Math.random().toString(36).substring(2, 15) + 
+                          Math.random().toString(36).substring(2, 15) + 
+                          Math.random().toString(36).substring(2, 15);
       
       // URL de redirection spécifiée dans votre application Twitter Developer
       const callbackUrl = process.env.TWITTER_REDIRECT_URI;
+      
+      console.log('🔍 Génération de l\'URL d\'authentification avec:', { 
+        state,
+        codeVerifierLength: codeVerifier.length,
+        callbackUrl 
+      });
       
       const authLink = await client.generateOAuth2AuthLink(callbackUrl, {
         scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
         state,
         codeVerifier,
+      });
+      
+      console.log('✅ URL d\'authentification générée:', { 
+        url: authLink.url.substring(0, 100) + '...',
+        codeChallenge: authLink.codeChallenge
       });
       
       // Stocker ces valeurs dans la session ou la base de données pour la vérification lors du callback
@@ -34,7 +53,7 @@ class TwitterOAuthService {
         codeChallenge: authLink.codeChallenge,
       };
     } catch (error) {
-      console.error('Erreur lors de la génération de l\'URL d\'authentification:', error);
+      console.error('❌ Erreur lors de la génération de l\'URL d\'authentification:', error);
       throw new Error('Impossible de générer l\'URL d\'authentification Twitter');
     }
   }
@@ -44,16 +63,46 @@ class TwitterOAuthService {
       const client = this.createClient();
       const callbackUrl = process.env.TWITTER_REDIRECT_URI;
       
+      console.log('🔄 Échange du code d\'autorisation pour un token avec:', { 
+        codeLength: code.length, 
+        codeVerifierLength: codeVerifier.length,
+        callbackUrl,
+        userId
+      });
+      
       // Échanger le code contre un access token
-      const { accessToken, refreshToken, expiresIn } = await client.loginWithOAuth2({
+      const result = await client.loginWithOAuth2({
         code,
         codeVerifier,
         redirectUri: callbackUrl,
+      }).catch(error => {
+        // Afficher les détails complets de l'erreur
+        console.error('🚨 Erreur complète de Twitter lors de l\'échange:', {
+          message: error.message,
+          status: error.status,
+          data: error.data,
+          stack: error.stack,
+          fullError: JSON.stringify(error, null, 2)
+        });
+        throw error;
+      });
+
+      const { accessToken, refreshToken, expiresIn } = result;
+      
+      console.log('✅ Token obtenu avec succès:', { 
+        accessTokenLength: accessToken?.length,
+        refreshTokenLength: refreshToken?.length,
+        expiresIn
       });
 
       // Obtenir des informations sur l'utilisateur Twitter pour stocker avec les tokens
       const userClient = new TwitterApi(accessToken);
       const user = await userClient.v2.me();
+
+      console.log('👤 Informations utilisateur Twitter récupérées:', {
+        username: user?.data?.username,
+        id: user?.data?.id
+      });
 
       const tokenData = {
         accessToken,
@@ -72,27 +121,29 @@ class TwitterOAuthService {
         .from('api_configurations')
         .select('id')
         .eq('user_id', userId)
-        .eq('platform', 'twitterClient')  // Utilisation de twitterClient au lieu de twitter
+        .eq('platform', 'twitterClient')
         .single();
 
       if (existingConfig) {
+        console.log('🔄 Mise à jour de la configuration Twitter existante:', { configId: existingConfig.id });
         await supabase
           .from('api_configurations')
           .update({ keys: encryptedToken })
           .eq('id', existingConfig.id);
       } else {
+        console.log('➕ Création d\'une nouvelle configuration Twitter');
         await supabase
           .from('api_configurations')
           .insert([{
             user_id: userId,
-            platform: 'twitterClient',  // Utilisation de twitterClient au lieu de twitter
+            platform: 'twitterClient',
             keys: encryptedToken
           }]);
       }
 
       return { message: 'Connexion Twitter réussie', username: user?.data?.username };
     } catch (error) {
-      console.error('Erreur échange token Twitter:', error);
+      console.error('❌ Erreur échange token Twitter:', error.message);
       throw new Error('Échec de l\'échange du code d\'autorisation Twitter');
     }
   }
