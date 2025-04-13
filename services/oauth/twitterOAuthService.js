@@ -1,6 +1,7 @@
 const { TwitterApi } = require('twitter-api-v2');
 const { supabase } = require('../supabaseService');
 const { encrypt, decrypt } = require('../../utils/encryptionUtil');
+const crypto = require('crypto');
 
 class TwitterOAuthService {
   static createClient() {
@@ -17,13 +18,21 @@ class TwitterOAuthService {
   static async getAuthorizationUrl() {
     try {
       const client = this.createClient();
-      // Générer les états de façon aléatoire pour la sécurité CSRF
+      // Générer un state de façon aléatoire pour la sécurité CSRF
       const state = Math.random().toString(36).substring(2, 15);
-      // Améliorer le codeVerifier pour qu'il soit plus long et conforme aux spécifications PKCE
-      const codeVerifier = Math.random().toString(36).substring(2, 15) + 
-                          Math.random().toString(36).substring(2, 15) + 
-                          Math.random().toString(36).substring(2, 15) + 
-                          Math.random().toString(36).substring(2, 15);
+      
+      // Créer un code_verifier plus robuste selon les spécifications RFC 7636
+      // Le code_verifier doit avoir entre 43 et 128 caractères et
+      // n'utiliser que les caractères: A-Z, a-z, 0-9, - _ . ~
+      const allowedChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+      let codeVerifier = '';
+      const randomBytes = crypto.randomBytes(96);
+      for (let i = 0; i < randomBytes.length; i++) {
+        codeVerifier += allowedChars[randomBytes[i] % allowedChars.length];
+      }
+      
+      // Limiter à 128 caractères (limite maximale selon RFC 7636)
+      codeVerifier = codeVerifier.slice(0, 128);
       
       // URL de redirection spécifiée dans votre application Twitter Developer
       const callbackUrl = process.env.TWITTER_REDIRECT_URI;
@@ -31,6 +40,7 @@ class TwitterOAuthService {
       console.log('🔍 Génération de l\'URL d\'authentification avec:', { 
         state,
         codeVerifierLength: codeVerifier.length,
+        codeVerifierSample: codeVerifier.substring(0, 10) + '...',
         callbackUrl 
       });
       
@@ -64,11 +74,18 @@ class TwitterOAuthService {
       const callbackUrl = process.env.TWITTER_REDIRECT_URI;
       
       console.log('🔄 Échange du code d\'autorisation pour un token avec:', { 
-        codeLength: code.length, 
+        codeLength: code.length,
+        codeSample: code.substring(0, 10) + '...',
         codeVerifierLength: codeVerifier.length,
+        codeVerifierSample: codeVerifier.substring(0, 10) + '...',
         callbackUrl,
         userId
       });
+      
+      // Vérifier si le code n'a pas été modifié par accident
+      if (codeVerifier.includes(' ') || /[^\w._\-~]/.test(codeVerifier)) {
+        console.error('⚠️ Le code_verifier contient des caractères non valides!');
+      }
       
       // Échanger le code contre un access token
       const result = await client.loginWithOAuth2({
