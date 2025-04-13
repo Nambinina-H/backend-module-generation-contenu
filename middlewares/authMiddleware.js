@@ -36,9 +36,24 @@ exports.verifyToken = async (req, res, next) => {
     .eq('platform', 'wordPressClient')
     .single();
 
-  const isWordPressConnected = !wordpressError && wordpressConfig;
+  // Vérifier si l'utilisateur est connecté à Twitter
+  const { data: twitterConfig, error: twitterError } = await supabase
+    .from('api_configurations')
+    .select('*')
+    .eq('user_id', data.user.id)
+    .eq('platform', 'twitterClient')  // Utilisation de twitterClient au lieu de twitter
+    .single();
 
-  // Ajouter les infos utilisateur, son rôle et l'état de connexion WordPress à `req.user`
-  req.user = { ...data.user, role: userProfile.role, isWordPressConnected };
+  const isWordPressConnected = !wordpressError && wordpressConfig;
+  const isTwitterConnected = !twitterError && twitterConfig;
+
+  // Ajouter les infos utilisateur, son rôle et l'état des connexions à `req.user`
+  req.user = { 
+    ...data.user, 
+    role: userProfile.role, 
+    isWordPressConnected,
+    isTwitterConnected
+  };
+  
   next();
 };
