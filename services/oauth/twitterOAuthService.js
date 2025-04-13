@@ -1,127 +1,114 @@
-const axios = require('axios');
+const { TwitterApi } = require('twitter-api-v2');
 const crypto = require('crypto');
 const { supabase } = require('../supabaseService');
 const { encrypt, decrypt } = require('../../utils/encryptionUtil');
 
 class TwitterOAuthService {
-  static generateCodeVerifier() {
-    // Générer un code_verifier aléatoire (entre 43-128 caractères selon RFC 7636)
-    return crypto.randomBytes(32).toString('hex');
+  static getTwitterClient() {
+    console.log('🔧 Initialisation du client Twitter avec CLIENT_ID:', 
+      process.env.TWITTER_CLIENT_ID ? `${process.env.TWITTER_CLIENT_ID.substring(0, 5)}...` : 'manquant');
+    
+    return new TwitterApi({
+      clientId: process.env.TWITTER_CLIENT_ID,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET
+    });
   }
 
-  static generateCodeChallenge(codeVerifier) {
-    // Générer un code_challenge à partir du code_verifier selon la méthode S256
-    return crypto
-      .createHash('sha256')
-      .update(codeVerifier)
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
+  static generateCodeVerifier() {
+    return crypto.randomBytes(32).toString('hex');
   }
 
   static async getAuthorizationUrl() {
     try {
-      // Générer un state de façon aléatoire pour la sécurité CSRF
-      const state = crypto.randomBytes(16).toString('hex');
-      
-      // Générer le code_verifier et le code_challenge
+      console.log('🔍 Démarrage de la génération de l\'URL d\'authentification Twitter');
+      const client = this.getTwitterClient();
+
+      // Générer un code_verifier et un state pour la sécurité CSRF
       const codeVerifier = this.generateCodeVerifier();
-      const codeChallenge = this.generateCodeChallenge(codeVerifier);
-      
-      // URL de redirection spécifiée dans votre application Twitter Developer
-      const callbackUrl = process.env.TWITTER_REDIRECT_URI;
+      const state = crypto.randomBytes(16).toString('hex');
       
       console.log('🔍 Génération de l\'URL d\'authentification avec:', { 
         state,
         codeVerifier: codeVerifier.substring(0, 10) + '...',
-        codeChallenge: codeChallenge.substring(0, 10) + '...',
-        callbackUrl 
+        redirectUri: process.env.TWITTER_REDIRECT_URI
       });
       
-      // Construire l'URL d'autorisation
-      const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: process.env.TWITTER_CLIENT_ID,
-        redirect_uri: callbackUrl,
-        scope: 'tweet.read tweet.write users.read offline.access',
-        state: state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
-      });
-
-      const url = `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
+      // Utiliser twitter-api-v2 pour générer l'URL d'autorisation OAuth 2.0
+      const authLink = await client.generateOAuth2AuthLink(
+        process.env.TWITTER_REDIRECT_URI, 
+        { 
+          scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
+          state: state,
+          code_challenge_method: 'S256',
+          code_challenge: codeVerifier
+        }
+      );
       
-      console.log('✅ URL d\'authentification générée:', { 
-        url: url.substring(0, 100) + '...'
+      console.log('✅ URL d\'authentification générée avec succès:', { 
+        url: authLink.url.substring(0, 100) + '...',
+        state: authLink.state,
+        codeVerifierPresent: !!authLink.codeVerifier,
+        codeVerifierLength: authLink.codeVerifier?.length
       });
       
       return {
-        url,
-        state,
-        codeVerifier,
-        codeChallenge
+        url: authLink.url,
+        state: authLink.state,
+        codeVerifier: authLink.codeVerifier,
       };
     } catch (error) {
       console.error('❌ Erreur lors de la génération de l\'URL d\'authentification:', error);
-      throw new Error('Impossible de générer l\'URL d\'authentification Twitter');
+      console.error('❌ Détails de l\'erreur:', { 
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause
+      });
+      throw new Error('Impossible de générer l\'URL d\'authentification Twitter: ' + error.message);
     }
   }
 
   static async exchangeCodeForToken(code, codeVerifier, userId) {
     try {
-      console.log('🔄 Échange du code d\'autorisation pour un token avec:', { 
+      console.log('🔄 Début de l\'échange du code contre un token Twitter');
+      const client = this.getTwitterClient();
+      
+      console.log('🔄 Échange du code avec paramètres:', { 
         codeLength: code.length,
         codeSample: code.substring(0, 10) + '...',
         codeVerifierLength: codeVerifier.length,
         codeVerifierSample: codeVerifier.substring(0, 10) + '...',
-        userId
+        redirectUri: process.env.TWITTER_REDIRECT_URI
       });
       
       // Échanger le code contre un access token
-      const tokenResponse = await axios.post(
-        'https://api.twitter.com/2/oauth2/token',
-        new URLSearchParams({
-          code,
-          grant_type: 'authorization_code',
-          client_id: process.env.TWITTER_CLIENT_ID,
-          redirect_uri: process.env.TWITTER_REDIRECT_URI,
-          code_verifier: codeVerifier
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      ).catch(error => {
-        console.error('🚨 Erreur complète de Twitter lors de l\'échange:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        });
-        throw new Error(`Échec de l'échange: ${error.response?.data?.error_description || error.message}`);
+      const loginResult = await client.loginWithOAuth2({
+        code,
+        redirectUri: process.env.TWITTER_REDIRECT_URI,
+        codeVerifier,
       });
 
-      const { access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn } = tokenResponse.data;
-      
       console.log('✅ Token obtenu avec succès:', { 
-        accessTokenLength: accessToken?.length,
-        refreshTokenLength: refreshToken?.length,
-        expiresIn
+        accessTokenPresent: !!loginResult.accessToken,
+        accessTokenLength: loginResult.accessToken?.length,
+        refreshTokenPresent: !!loginResult.refreshToken,
+        refreshTokenLength: loginResult.refreshToken?.length,
+        expiresIn: loginResult.expiresIn
       });
-
+      
+      const { accessToken, refreshToken, expiresIn } = loginResult;
+      
+      // Créer un nouveau client avec le token d'accès
+      console.log('🔍 Création du client authentifié avec le token obtenu');
+      const loggedClient = new TwitterApi(accessToken);
+      
       // Obtenir des informations sur l'utilisateur Twitter
-      const userResponse = await axios.get('https://api.twitter.com/2/users/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      });
-
-      const { username, id: twitterId } = userResponse.data.data;
-
+      console.log('🔍 Récupération des informations de l\'utilisateur Twitter');
+      const userInfo = await loggedClient.v2.me();
+      
       console.log('👤 Informations utilisateur Twitter récupérées:', {
-        username,
-        twitterId
+        username: userInfo.data.username,
+        twitterId: userInfo.data.id,
+        name: userInfo.data.name
       });
 
       const tokenData = {
@@ -129,41 +116,67 @@ class TwitterOAuthService {
         refreshToken,
         expiresIn,
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
-        twitterId,
-        twitterUsername: username,
+        twitterId: userInfo.data.id,
+        twitterUsername: userInfo.data.username,
       };
 
       // Chiffrer les données du token
+      console.log('🔒 Chiffrement des tokens pour stockage sécurisé');
       const encryptedToken = encrypt(JSON.stringify(tokenData));
 
       // Vérifier si une configuration existe déjà
-      const { data: existingConfig } = await supabase
+      console.log('🔍 Vérification si une configuration Twitter existe déjà pour l\'utilisateur:', userId);
+      const { data: existingConfig, error } = await supabase
         .from('api_configurations')
         .select('id')
         .eq('user_id', userId)
         .eq('platform', 'twitterClient')
         .single();
 
+      if (error) {
+        console.log('ℹ️ Aucune configuration existante trouvée:', error.message);
+      }
+
       if (existingConfig) {
-        console.log('🔄 Mise à jour de la configuration Twitter existante:', { configId: existingConfig.id });
-        await supabase
+        console.log('🔄 Mise à jour de la configuration Twitter existante:', existingConfig.id);
+        const { data, error: updateError } = await supabase
           .from('api_configurations')
           .update({ keys: encryptedToken })
-          .eq('id', existingConfig.id);
+          .eq('id', existingConfig.id)
+          .select();
+        
+        if (updateError) {
+          console.error('❌ Erreur lors de la mise à jour:', updateError);
+          throw new Error(`Erreur lors de la mise à jour de la configuration: ${updateError.message}`);
+        }
+        console.log('✅ Configuration Twitter mise à jour avec succès');
       } else {
         console.log('➕ Création d\'une nouvelle configuration Twitter');
-        await supabase
+        const { data, error: insertError } = await supabase
           .from('api_configurations')
           .insert([{
             user_id: userId,
             platform: 'twitterClient',
             keys: encryptedToken
-          }]);
+          }])
+          .select();
+          
+        if (insertError) {
+          console.error('❌ Erreur lors de la création:', insertError);
+          throw new Error(`Erreur lors de la création de la configuration: ${insertError.message}`);
+        }
+        console.log('✅ Nouvelle configuration Twitter créée avec succès');
       }
 
-      return { message: 'Connexion Twitter réussie', username };
+      return { message: 'Connexion Twitter réussie', username: userInfo.data.username };
     } catch (error) {
-      console.error('❌ Erreur échange token Twitter:', error.message);
+      console.error('❌ Erreur échange token Twitter:', error);
+      console.error('❌ Détails de l\'erreur:', { 
+        message: error.message, 
+        stack: error.stack,
+        cause: error.cause,
+        response: error.response?.data
+      });
       throw new Error(`Échec de l'échange du code d'autorisation Twitter: ${error.message}`);
     }
   }
@@ -190,28 +203,15 @@ class TwitterOAuthService {
         throw new Error('Refresh token Twitter non disponible');
       }
 
-      // Rafraîchir le token
-      const refreshResponse = await axios.post(
-        'https://api.twitter.com/2/oauth2/token',
-        new URLSearchParams({
-          refresh_token: refreshToken,
-          grant_type: 'refresh_token',
-          client_id: process.env.TWITTER_CLIENT_ID
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
-
-      const { access_token: accessToken, refresh_token: newRefreshToken, expires_in: expiresIn } = refreshResponse.data;
+      // Rafraîchir le token avec twitter-api-v2
+      const client = this.getTwitterClient();
+      const { accessToken, refreshToken: newRefreshToken, expiresIn } = await client.refreshOAuth2Token(refreshToken);
 
       // Mettre à jour les données du token
       const newTokenData = {
         ...tokenData,
         accessToken,
-        refreshToken: newRefreshToken || refreshToken, // Utiliser le nouveau refresh token s'il est fourni
+        refreshToken: newRefreshToken || refreshToken,
         expiresIn,
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
       };
@@ -231,8 +231,10 @@ class TwitterOAuthService {
     }
   }
 
-  static async getAccessTokenForUser(userId) {
+  static async getTwitterClientForUser(userId) {
     try {
+      console.log('🔍 Récupération du client Twitter pour l\'utilisateur:', userId);
+      
       // Vérifier si on a besoin de rafraîchir le token
       const { data: configData, error: configError } = await supabase
         .from('api_configurations')
@@ -241,61 +243,101 @@ class TwitterOAuthService {
         .eq('platform', 'twitterClient')
         .single();
 
-      if (configError || !configData) {
+      if (configError) {
+        console.error('❌ Erreur lors de la récupération de la config Twitter:', configError.message);
         throw new Error('Configuration Twitter non trouvée');
       }
 
+      console.log('✅ Configuration Twitter trouvée, déchiffrement des tokens');
+      
       // Déchiffrer les tokens
       let tokenData = JSON.parse(decrypt(configData.keys));
       const now = new Date();
       const expiresAt = new Date(tokenData.expiresAt);
+      
+      console.log('🔍 Vérification de l\'expiration du token:', { 
+        expiresAt: expiresAt.toISOString(),
+        now: now.toISOString(),
+        timeRemaining: Math.round((expiresAt - now) / 1000) + ' secondes',
+        needsRefresh: (expiresAt - now) < 300000
+      });
 
       // Si le token expire dans moins de 5 minutes, le rafraîchir
       if ((expiresAt - now) < 300000) { // 5 minutes en millisecondes
+        console.log('🔄 Token expirant bientôt, rafraîchissement...');
         tokenData = await this.refreshAccessToken(userId);
+        console.log('✅ Token rafraîchi avec succès');
       }
 
-      return tokenData.accessToken;
+      // Créer un client Twitter avec le token d'accès
+      console.log('🔧 Création du client Twitter avec le token d\'accès');
+      const client = new TwitterApi(tokenData.accessToken);
+      
+      // On obtient la version v2 du client
+      console.log('✅ Client Twitter V2 créé avec succès');
+      return client.v2;
     } catch (error) {
-      console.error('Erreur lors de la récupération du token Twitter:', error);
+      console.error('❌ Erreur lors de la récupération du client Twitter:', error);
+      console.error('❌ Détails de l\'erreur:', { 
+        message: error.message, 
+        stack: error.stack
+      });
       throw error;
     }
   }
 
   static async publishTweet(userId, content, mediaIds = []) {
     try {
-      const accessToken = await this.getAccessTokenForUser(userId);
+      console.log('🐦 Début de la publication d\'un tweet pour l\'utilisateur:', userId);
+      console.log('📝 Contenu du tweet:', content);
+      console.log('🖼️ Médias à inclure:', mediaIds);
       
-      const payload = {
-        text: content
-      };
+      // Obtenir le client Twitter V2 pour l'utilisateur
+      console.log('🔍 Récupération du client Twitter authentifié');
+      const twitterClient = await this.getTwitterClientForUser(userId);
       
-      if (mediaIds.length) {
-        payload.media = { media_ids: mediaIds };
+      // Options pour le tweet
+      const tweetOptions = {};
+      
+      // Ajouter les médias si présents
+      if (mediaIds.length > 0) {
+        console.log('🖼️ Ajout des médias au tweet:', mediaIds);
+        tweetOptions.media = { media_ids: mediaIds };
       }
       
-      const response = await axios.post(
-        'https://api.twitter.com/2/tweets',
-        payload,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      // Publier le tweet avec twitter-api-v2
+      console.log('📤 Envoi du tweet à l\'API Twitter...');
+      const result = await twitterClient.tweet(content, tweetOptions);
       
-      return response.data;
+      console.log('✅ Tweet publié avec succès:', { 
+        tweetId: result.data.id, 
+        text: result.data.text
+      });
+      return result;
     } catch (error) {
-      console.error('Erreur lors de la publication du tweet:', error);
+      console.error('❌ Erreur lors de la publication du tweet:', error);
+      console.error('❌ Détails de l\'erreur:', { 
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        statusCode: error.statusCode,
+        data: error.data
+      });
       throw error;
     }
   }
 
   static async uploadMedia(userId, mediaUrl) {
-    // Cette fonction est plus complexe et nécessite plusieurs appels API
-    // Pour l'instant, on renvoie juste une erreur
-    throw new Error('Upload de média non implémenté');
+    try {
+      // Cette fonction nécessite plus de travail car twitter-api-v2 nécessite des données binaires
+      // pour l'upload des médias, pas juste une URL
+      console.log('⚠️ Tentative d\'upload de média avec twitter-api-v2');
+      
+      throw new Error('Upload de média à implémenter ultérieurement');
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'upload de média:', error);
+      throw error;
+    }
   }
 
   static async disconnectUser(userId) {
@@ -308,21 +350,53 @@ class TwitterOAuthService {
     if (error) {
       throw new Error('Erreur lors de la déconnexion Twitter');
     }
+    
+    console.log('✅ Déconnexion Twitter réussie pour:', { userId });
   }
 
   static async isUserConnected(userId) {
-    const { data, error } = await supabase
-      .from('api_configurations')
-      .select('keys')
-      .eq('user_id', userId)
-      .eq('platform', 'twitterClient')
-      .single();
-    
-    if (error || !data) {
+    try {
+      console.log('🔍 Vérification de la connexion Twitter pour l\'utilisateur:', userId);
+      
+      // Vérifier si l'utilisateur a une configuration Twitter
+      const { data, error } = await supabase
+        .from('api_configurations')
+        .select('keys, updated_at')
+        .eq('user_id', userId)
+        .eq('platform', 'twitterClient')
+        .single();
+      
+      if (error) {
+        console.log('❌ Aucune configuration Twitter trouvée:', error.message);
+        return false;
+      }
+      
+      console.log('✅ Configuration Twitter trouvée, dernière mise à jour:', data.updated_at);
+      
+      // Si des tokens existent, essayer de récupérer le client pour vérifier la validité
+      try {
+        console.log('🔍 Vérification de la validité des tokens...');
+        await this.getTwitterClientForUser(userId);
+        console.log('✅ Tokens valides, utilisateur connecté à Twitter');
+        return true;
+      } catch (clientError) {
+        console.error('❌ Échec de vérification du client Twitter:', clientError.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la vérification de la connexion Twitter:', error.message);
       return false;
     }
-    
-    return true;
+  }
+  
+  static async getUserInfo(userId) {
+    try {
+      const twitterClient = await this.getTwitterClientForUser(userId);
+      return await twitterClient.me();
+    } catch (error) {
+      console.error('Erreur lors de la récupération des informations utilisateur Twitter:', error);
+      throw error;
+    }
   }
 }
 

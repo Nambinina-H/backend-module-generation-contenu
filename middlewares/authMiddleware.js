@@ -1,6 +1,8 @@
 const { supabase } = require('../services/supabaseService'); // Ensure correct import
 
 exports.verifyToken = async (req, res, next) => {
+  console.log('🔒 Vérification du token d\'authentification');
+  
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
@@ -8,15 +10,20 @@ exports.verifyToken = async (req, res, next) => {
     return res.status(401).json({ error: 'Accès refusé. Token manquant.' });
   }
 
+  console.log('🔍 Validation du token avec Supabase...');
+  
   // Vérifier le token et récupérer l'utilisateur
   const { data, error } = await supabase.auth.getUser(token);
 
   if (error || !data?.user) {
-    console.error("🚨 Erreur de validation du token :", error || "Utilisateur non trouvé");
+    console.error("🚨 Erreur de validation du token :", error?.message || "Utilisateur non trouvé");
     return res.status(401).json({ error: 'Token invalide ou expiré.' });
   }
 
+  console.log('✅ Token valide, utilisateur identifié:', data.user.id, '|', data.user.email);
+  
   // Récupérer le rôle de l'utilisateur depuis `profiles`
+  console.log('🔍 Récupération du rôle utilisateur...');
   const { data: userProfile, error: roleError } = await supabase
     .from('profiles')
     .select('role')
@@ -24,11 +31,14 @@ exports.verifyToken = async (req, res, next) => {
     .single();
 
   if (roleError || !userProfile) {
-    console.error("🚨 Erreur lors de la récupération du rôle :", roleError);
+    console.error("🚨 Erreur lors de la récupération du rôle :", roleError?.message || "Profil non trouvé");
     return res.status(500).json({ error: 'Impossible de récupérer le rôle utilisateur.' });
   }
 
+  console.log('✅ Rôle utilisateur récupéré:', userProfile.role);
+
   // Vérifier si l'utilisateur est connecté à WordPress
+  console.log('🔍 Vérification de la connexion WordPress...');
   const { data: wordpressConfig, error: wordpressError } = await supabase
     .from('api_configurations')
     .select('*')
@@ -37,15 +47,21 @@ exports.verifyToken = async (req, res, next) => {
     .single();
 
   // Vérifier si l'utilisateur est connecté à Twitter
+  console.log('🔍 Vérification de la connexion Twitter...');
   const { data: twitterConfig, error: twitterError } = await supabase
     .from('api_configurations')
     .select('*')
     .eq('user_id', data.user.id)
-    .eq('platform', 'twitterClient')  // Utilisation de twitterClient au lieu de twitter
+    .eq('platform', 'twitterClient')
     .single();
 
   const isWordPressConnected = !wordpressError && wordpressConfig;
   const isTwitterConnected = !twitterError && twitterConfig;
+
+  console.log('✅ État des connexions:', {
+    wordPress: isWordPressConnected ? 'Connecté' : 'Non connecté',
+    twitter: isTwitterConnected ? 'Connecté' : 'Non connecté'
+  });
 
   // Ajouter les infos utilisateur, son rôle et l'état des connexions à `req.user`
   req.user = { 
@@ -55,5 +71,6 @@ exports.verifyToken = async (req, res, next) => {
     isTwitterConnected
   };
   
+  console.log('✅ Middleware d\'authentification terminé avec succès');
   next();
 };
