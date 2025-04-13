@@ -174,14 +174,15 @@ exports.disconnect = async (req, res) => {
 exports.publishTweet = async (req, res) => {
   console.log('📤 -------- Début de la demande de publication d\'un tweet --------');
   
-  const { content, mediaUrl } = req.body;
+  const { content } = req.body;
   const userId = req.user.id;
+  const mediaFiles = req.files; // Récupérer les fichiers uploadés
 
   console.log('📤 Demande de publication d\'un tweet:', { 
     userId,
     contentLength: content?.length,
     contentSample: content ? content.substring(0, 30) + (content.length > 30 ? '...' : '') : 'absent',
-    hasMedia: !!mediaUrl
+    hasMedia: !!mediaFiles?.length
   });
 
   if (!content) {
@@ -191,21 +192,37 @@ exports.publishTweet = async (req, res) => {
 
   try {
     let mediaIds = [];
-    // Upload de média via twitter-api-v2 si nécessaire
-    if (mediaUrl) {
-      console.log("⚠️ Un média a été fourni mais l'upload n'est pas encore implémenté");
-      console.log("🖼️ URL du média:", mediaUrl);
+
+    // Si des fichiers sont présents, les uploader à Twitter
+    if (mediaFiles && mediaFiles.length > 0) {
+      console.log('🖼️ Upload des médias détectés...');
+      for (const file of mediaFiles) {
+        console.log('📂 Traitement du fichier:', {
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size
+        });
+
+        try {
+          const mediaId = await TwitterOAuthService.uploadMediaWithOAuth1(file.buffer, file.mimetype);
+          mediaIds.push(mediaId);
+        } catch (uploadError) {
+          console.error('❌ Erreur lors de l\'upload du média:', uploadError.message);
+          return res.status(500).json({ error: uploadError.message });
+        }
+      }
+      console.log('✅ Médias uploadés avec succès, media_ids:', mediaIds);
     }
-    
-    // Utiliser twitter-api-v2 pour publier un tweet
-    console.log('🐦 Appel au service pour publier le tweet...');
+
+    // Publier le tweet avec ou sans médias
+    console.log('🐦 Publication du tweet...');
     const tweet = await TwitterOAuthService.publishTweet(userId, content, mediaIds);
-    
+
     console.log('✅ Tweet publié avec succès:', {
       tweetId: tweet.data.id,
       tweetText: tweet.data.text
     });
-    
+
     await logAction(userId, 'twitter_publish', `Tweet publié : https://twitter.com/i/web/status/${tweet.data.id}`);
     console.log('📤 -------- Fin de la demande de publication d\'un tweet --------');
     

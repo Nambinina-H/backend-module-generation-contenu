@@ -14,6 +14,16 @@ class TwitterOAuthService {
     });
   }
 
+  static getTwitterClientOAuth1() {
+    console.log('🔧 Initialisation du client Twitter avec OAuth 1.0a');
+    return new TwitterApi({
+      appKey: process.env.TWITTER_API_KEY,
+      appSecret: process.env.TWITTER_API_SECRET,
+      accessToken: process.env.TWITTER_ACCESS_TOKEN,
+      accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+    });
+  }
+
   static generateCodeVerifier() {
     return crypto.randomBytes(32).toString('hex');
   }
@@ -249,21 +259,17 @@ class TwitterOAuthService {
       }
 
       console.log('✅ Configuration Twitter trouvée, déchiffrement des tokens');
-      
-      // Déchiffrer les tokens
       let tokenData = JSON.parse(decrypt(configData.keys));
-      const now = new Date();
-      const expiresAt = new Date(tokenData.expiresAt);
-      
-      console.log('🔍 Vérification de l\'expiration du token:', { 
-        expiresAt: expiresAt.toISOString(),
-        now: now.toISOString(),
-        timeRemaining: Math.round((expiresAt - now) / 1000) + ' secondes',
-        needsRefresh: (expiresAt - now) < 300000
+      console.log('🔑 Tokens déchiffrés:', {
+        accessTokenPresent: !!tokenData.accessToken,
+        refreshTokenPresent: !!tokenData.refreshToken,
+        expiresAt: tokenData.expiresAt
       });
 
-      // Si le token expire dans moins de 5 minutes, le rafraîchir
-      if ((expiresAt - now) < 300000) { // 5 minutes en millisecondes
+      // Vérifier l'expiration du token
+      const now = new Date();
+      const expiresAt = new Date(tokenData.expiresAt);
+      if ((expiresAt - now) < 300000) {
         console.log('🔄 Token expirant bientôt, rafraîchissement...');
         tokenData = await this.refreshAccessToken(userId);
         console.log('✅ Token rafraîchi avec succès');
@@ -272,16 +278,12 @@ class TwitterOAuthService {
       // Créer un client Twitter avec le token d'accès
       console.log('🔧 Création du client Twitter avec le token d\'accès');
       const client = new TwitterApi(tokenData.accessToken);
-      
-      // On obtient la version v2 du client
-      console.log('✅ Client Twitter V2 créé avec succès');
-      return client.v2;
+      console.log('✅ Client Twitter créé avec succès');
+
+      return client;
     } catch (error) {
-      console.error('❌ Erreur lors de la récupération du client Twitter:', error);
-      console.error('❌ Détails de l\'erreur:', { 
-        message: error.message, 
-        stack: error.stack
-      });
+      console.error('❌ Erreur lors de la récupération du client Twitter:', error.message);
+      console.error('❌ Stack trace:', error.stack);
       throw error;
     }
   }
@@ -297,7 +299,7 @@ class TwitterOAuthService {
       const twitterClient = await this.getTwitterClientForUser(userId);
       
       // Options pour le tweet
-      const tweetOptions = {};
+      const tweetOptions = { text: content };
       
       // Ajouter les médias si présents
       if (mediaIds.length > 0) {
@@ -307,7 +309,7 @@ class TwitterOAuthService {
       
       // Publier le tweet avec twitter-api-v2
       console.log('📤 Envoi du tweet à l\'API Twitter...');
-      const result = await twitterClient.tweet(content, tweetOptions);
+      const result = await twitterClient.v2.tweet(tweetOptions);
       
       console.log('✅ Tweet publié avec succès:', { 
         tweetId: result.data.id, 
@@ -327,15 +329,67 @@ class TwitterOAuthService {
     }
   }
 
-  static async uploadMedia(userId, mediaUrl) {
+  static async uploadMedia(userId, mediaBuffer, mediaType) {
     try {
-      // Cette fonction nécessite plus de travail car twitter-api-v2 nécessite des données binaires
-      // pour l'upload des médias, pas juste une URL
-      console.log('⚠️ Tentative d\'upload de média avec twitter-api-v2');
-      
-      throw new Error('Upload de média à implémenter ultérieurement');
+      console.log('🔄 Début de l\'upload du média pour l\'utilisateur:', userId);
+      console.log('📂 Taille du buffer:', mediaBuffer?.length, 'octets');
+      console.log('📂 Type MIME du média:', mediaType);
+
+      // Vérification de la taille et du format du fichier
+      if (mediaBuffer.length > 5 * 1024 * 1024) {
+        throw new Error('Le fichier dépasse la taille maximale autorisée par Twitter (5 Mo).');
+      }
+      if (!['image/jpeg', 'image/png'].includes(mediaType)) {
+        throw new Error('Type de fichier non supporté. Seuls les formats JPEG et PNG sont autorisés.');
+      }
+
+      // Obtenir le client Twitter authentifié
+      const twitterClient = await this.getTwitterClientForUser(userId);
+      console.log('✅ Client Twitter récupéré avec succès');
+
+      // Uploader le média
+      try {
+        const mediaId = await twitterClient.v1.uploadMedia(mediaBuffer, { mimeType: mediaType });
+        console.log('✅ Média uploadé avec succès, media_id:', mediaId);
+        return mediaId;
+      } catch (error) {
+        console.error('❌ Erreur lors de l\'upload du média:', error.message);
+        console.error('❌ Réponse complète de l\'API Twitter:', error.data || error);
+        if (error.code === 403) {
+          throw new Error('Permission refusée par l\'API Twitter. Vérifiez les permissions ou le token d\'accès.');
+        }
+        throw new Error('Échec de l\'upload du média à Twitter');
+      }
     } catch (error) {
-      console.error('❌ Erreur lors de l\'upload de média:', error);
+      console.error('❌ Erreur dans uploadMedia:', error.message);
+      throw error;
+    }
+  }
+
+  static async uploadMediaWithOAuth1(mediaBuffer, mediaType) {
+    try {
+      console.log('🔄 Début de l\'upload du média avec OAuth 1.0a');
+      console.log('📂 Taille du buffer:', mediaBuffer?.length, 'octets');
+      console.log('📂 Type MIME du média:', mediaType);
+
+      // Vérification de la taille et du format du fichier
+      if (mediaBuffer.length > 5 * 1024 * 1024) {
+        throw new Error('Le fichier dépasse la taille maximale autorisée par Twitter (5 Mo).');
+      }
+      if (!['image/jpeg', 'image/png'].includes(mediaType)) {
+        throw new Error('Type de fichier non supporté. Seuls les formats JPEG et PNG sont autorisés.');
+      }
+
+      // Obtenir le client Twitter OAuth 1.0a
+      const twitterClient = this.getTwitterClientOAuth1();
+      console.log('✅ Client Twitter OAuth 1.0a récupéré avec succès');
+
+      // Uploader le média
+      const mediaId = await twitterClient.v1.uploadMedia(mediaBuffer, { mimeType: mediaType });
+      console.log('✅ Média uploadé avec succès, media_id:', mediaId);
+      return mediaId;
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'upload du média avec OAuth 1.0a:', error.message);
       throw error;
     }
   }
@@ -346,11 +400,10 @@ class TwitterOAuthService {
       .delete()
       .eq('user_id', userId)
       .eq('platform', 'twitterClient');
-
+  
     if (error) {
       throw new Error('Erreur lors de la déconnexion Twitter');
     }
-    
     console.log('✅ Déconnexion Twitter réussie pour:', { userId });
   }
 
@@ -398,6 +451,7 @@ class TwitterOAuthService {
       throw error;
     }
   }
+
 }
 
 module.exports = TwitterOAuthService;
