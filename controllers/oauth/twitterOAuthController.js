@@ -85,6 +85,7 @@ exports.handleCallback = async (req, res) => {
     console.log('✅ State trouvé dans la base de données:', { 
       recordId: stateData.id,
       codeVerifierLength: stateData.code_verifier?.length,
+      codeVerifierSample: stateData.code_verifier?.substring(0, 10) + '...',
       created_at: stateData.created_at
     });
 
@@ -109,7 +110,9 @@ exports.handleCallback = async (req, res) => {
 
     console.log('🔄 Échange du code contre un token avec:', { 
       codeLength: code.length,
-      codeVerifierLength: stateData.code_verifier.length
+      codeSample: code.substring(0, 10) + '...',
+      codeVerifierLength: stateData.code_verifier.length,
+      codeVerifierSample: stateData.code_verifier.substring(0, 10) + '...'
     });
     
     const result = await TwitterOAuthService.exchangeCodeForToken(code, stateData.code_verifier, userId)
