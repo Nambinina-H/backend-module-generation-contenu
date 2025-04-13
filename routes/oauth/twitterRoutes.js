@@ -6,7 +6,7 @@ const twitterOAuthController = require('../../controllers/oauth/twitterOAuthCont
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // Limite de 5MB par fichier
+  limits: { fileSize: 512 * 1024 * 1024 } // Limite de 512MB pour les vidéos
 });
 
 router.get('/auth-url', verifyToken, twitterOAuthController.getAuthUrl);

@@ -336,11 +336,22 @@ class TwitterOAuthService {
       console.log('📂 Type MIME du média:', mediaType);
 
       // Vérification de la taille et du format du fichier
-      if (mediaBuffer.length > 5 * 1024 * 1024) {
-        throw new Error('Le fichier dépasse la taille maximale autorisée par Twitter (5 Mo).');
-      }
-      if (!['image/jpeg', 'image/png'].includes(mediaType)) {
-        throw new Error('Type de fichier non supporté. Seuls les formats JPEG et PNG sont autorisés.');
+      if (mediaType.startsWith('image/')) {
+        if (mediaBuffer.length > 5 * 1024 * 1024) {
+          throw new Error('Le fichier image dépasse la taille maximale autorisée par Twitter (5 Mo).');
+        }
+        if (!['image/jpeg', 'image/png'].includes(mediaType)) {
+          throw new Error('Type de fichier non supporté. Seuls les formats JPEG et PNG sont autorisés.');
+        }
+      } else if (mediaType.startsWith('video/')) {
+        if (mediaBuffer.length > 512 * 1024 * 1024) {
+          throw new Error('Le fichier vidéo dépasse la taille maximale autorisée par Twitter (512 Mo).');
+        }
+        if (!['video/mp4'].includes(mediaType)) {
+          throw new Error('Type de fichier non supporté. Seul le format MP4 est autorisé.');
+        }
+      } else {
+        throw new Error('Type de média non supporté.');
       }
 
       // Obtenir le client Twitter authentifié
@@ -373,11 +384,22 @@ class TwitterOAuthService {
       console.log('📂 Type MIME du média:', mediaType);
 
       // Vérification de la taille et du format du fichier
-      if (mediaBuffer.length > 5 * 1024 * 1024) {
-        throw new Error('Le fichier dépasse la taille maximale autorisée par Twitter (5 Mo).');
-      }
-      if (!['image/jpeg', 'image/png'].includes(mediaType)) {
-        throw new Error('Type de fichier non supporté. Seuls les formats JPEG et PNG sont autorisés.');
+      if (mediaType.startsWith('image/')) {
+        if (mediaBuffer.length > 5 * 1024 * 1024) {
+          throw new Error('Le fichier image dépasse la taille maximale autorisée par Twitter (5 Mo).');
+        }
+        if (!['image/jpeg', 'image/png'].includes(mediaType)) {
+          throw new Error('Type de fichier non supporté. Seuls les formats JPEG et PNG sont autorisés.');
+        }
+      } else if (mediaType.startsWith('video/')) {
+        if (mediaBuffer.length > 512 * 1024 * 1024) {
+          throw new Error('Le fichier vidéo dépasse la taille maximale autorisée par Twitter (512 Mo).');
+        }
+        if (!['video/mp4'].includes(mediaType)) {
+          throw new Error('Type de fichier non supporté. Seul le format MP4 est autorisé.');
+        }
+      } else {
+        throw new Error('Type de média non supporté.');
       }
 
       // Obtenir le client Twitter OAuth 1.0a
