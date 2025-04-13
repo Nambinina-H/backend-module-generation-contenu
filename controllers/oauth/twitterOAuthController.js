@@ -6,21 +6,36 @@ exports.getAuthUrl = async (req, res) => {
   try {
     console.log('📝 Génération d\'URL d\'authentification Twitter pour l\'utilisateur:', req.user.id);
     
-    // Générer l'URL d'autorisation et les informations de vérification
+    // Générer URL d'autorisation et stocker les informations de vérification
     const authInfo = await TwitterOAuthService.getAuthorizationUrl();
     
-    // Stocker les informations d'authentification dans la session
-    req.session.twitterOAuth = {
+    console.log('💾 Stockage des informations d\'authentification dans oauth_states:', {
       userId: req.user.id,
-      state: authInfo.state,
-      codeVerifier: authInfo.codeVerifier,
-      createdAt: new Date().toISOString()
-    };
-    
-    console.log('💾 Informations d\'authentification stockées en session:', {
-      userId: req.user.id,
+      platform: 'twitterClient',
       stateLength: authInfo.state.length,
       codeVerifierLength: authInfo.codeVerifier.length
+    });
+    
+    // Stocker temporairement codeVerifier, state, etc. dans la base de données
+    const { data, error } = await supabase
+      .from('oauth_states')
+      .insert([{
+        user_id: req.user.id,
+        platform: 'twitterClient',
+        state: authInfo.state,
+        code_verifier: authInfo.codeVerifier,
+        created_at: new Date().toISOString()
+      }])
+      .select();
+    
+    if (error) {
+      console.error('❌ Erreur de stockage Supabase:', error);
+      throw new Error('Erreur lors du stockage des informations d\'authentification');
+    }
+    
+    console.log('✅ Informations d\'authentification stockées avec succès:', {
+      record: data ? 'créé' : 'non créé',
+      timestamp: new Date().toISOString()
     });
     
     res.json({ url: authInfo.url });
@@ -47,43 +62,67 @@ exports.handleCallback = async (req, res) => {
   }
 
   try {
-    // Récupérer les informations de vérification depuis la session
-    const oauthData = req.session.twitterOAuth;
+    // Récupérer les informations de vérification stockées dans la base de données
+    console.log('🔍 Recherche du state dans la base de données:', { 
+      userId, 
+      platform: 'twitterClient', 
+      state 
+    });
     
-    if (!oauthData || oauthData.state !== state || oauthData.userId !== userId) {
-      console.error('❌ Données de session invalides ou state ne correspondant pas:', {
-        sessionExists: !!oauthData,
-        stateMatches: oauthData?.state === state,
-        userMatches: oauthData?.userId === userId
-      });
-      return res.status(400).json({ error: 'Session invalide ou expirée' });
+    const { data: stateData, error: stateError } = await supabase
+      .from('oauth_states')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', 'twitterClient')
+      .eq('state', state)
+      .single();
+
+    if (stateError || !stateData) {
+      console.error('❌ State non trouvé:', { error: stateError?.message || 'State non trouvé' });
+      return res.status(400).json({ error: 'État de vérification invalide ou expiré' });
     }
 
-    console.log('✅ Données de session trouvées:', { 
-      userId: oauthData.userId,
-      codeVerifierLength: oauthData.codeVerifier.length,
-      codeVerifierSample: oauthData.codeVerifier.substring(0, 10) + '...',
-      createdAt: oauthData.createdAt
+    console.log('✅ State trouvé dans la base de données:', { 
+      recordId: stateData.id,
+      codeVerifierLength: stateData.code_verifier?.length,
+      codeVerifierSample: stateData.code_verifier?.substring(0, 10) + '...',
+      created_at: stateData.created_at
     });
 
-    // Vérifier que la session n'est pas trop ancienne
-    const sessionCreatedAt = new Date(oauthData.createdAt);
+    // Vérifier que l'état n'est pas trop ancien
+    const stateCreatedAt = new Date(stateData.created_at);
     const now = new Date();
-    const timeDiff = now - sessionCreatedAt;
+    const timeDiff = now - stateCreatedAt;
+    console.log('⏱️ Âge du state:', { 
+      createdAt: stateCreatedAt.toISOString(),
+      now: now.toISOString(),
+      ageMinutes: Math.round(timeDiff / 60000),
+      ageMilliseconds: timeDiff
+    });
     
     if (timeDiff > 900000) { // 15 minutes en millisecondes
-      console.error('⏰ Session expirée:', { 
-        createdAt: sessionCreatedAt.toISOString(),
-        expiresAt: new Date(sessionCreatedAt.getTime() + 900000).toISOString()
+      console.error('⏰ State expiré:', { 
+        createdAt: stateCreatedAt.toISOString(),
+        expiresAt: new Date(stateCreatedAt.getTime() + 900000).toISOString()
       });
       return res.status(400).json({ error: 'La session d\'authentification a expiré' });
     }
 
-    // Échanger le code contre un token
-    const result = await TwitterOAuthService.exchangeCodeForToken(code, oauthData.codeVerifier, userId);
+    console.log('🔄 Échange du code contre un token avec:', { 
+      codeLength: code.length,
+      codeSample: code.substring(0, 10) + '...',
+      codeVerifierLength: stateData.code_verifier.length,
+      codeVerifierSample: stateData.code_verifier.substring(0, 10) + '...'
+    });
     
-    // Nettoyer les données temporaires de la session
-    delete req.session.twitterOAuth;
+    const result = await TwitterOAuthService.exchangeCodeForToken(code, stateData.code_verifier, userId);
+    
+    // Nettoyer les données temporaires
+    console.log('🧹 Nettoyage des données temporaires');
+    await supabase
+      .from('oauth_states')
+      .delete()
+      .eq('id', stateData.id);
 
     await logAction(userId, 'twitter_oauth_connect', `Connexion Twitter OAuth réussie pour @${result.username}`);
     
