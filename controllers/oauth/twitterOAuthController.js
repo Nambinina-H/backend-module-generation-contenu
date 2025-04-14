@@ -233,7 +233,15 @@ exports.publishTweet = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Erreur lors de la publication du tweet:', error.message);
-    console.error('❌ Stack trace:', error.stack);
+
+    if (error.code === 429 && error.rateLimit?.reset) {
+      const resetTime = new Date(error.rateLimit.reset * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return res.status(429).json({
+        error: `Vous avez atteint la limite quotidienne de publications autorisées par Twitter. Veuillez réessayer après ${resetTime}.`,
+        retryAfter: resetTime,
+      });
+    }
+
     res.status(500).json({ error: error.message });
   }
 };
