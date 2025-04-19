@@ -157,8 +157,9 @@ exports.cancelScheduledPublication = async (req, res) => {
  * @param {Object} res - Réponse Express.
  */
 exports.publishToWordPress = async (req, res) => {
-  const { content, mediaUrl, type, date, title, status } = req.body; // Ajout de `status`
+  const { content, mediaUrl, type, date, title, status } = req.body;
   const userId = req.user.id;
+  const supabase = getSupabaseClient();
 
   if (!content || !type || !status) {
     return res.status(400).json({ error: 'Le contenu, le type et le statut sont obligatoires.' });
@@ -216,11 +217,11 @@ exports.publishToWordPress = async (req, res) => {
     const formatDate = (isoDate) => {
       const date = new Date(isoDate);
       const options = { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: '2-digit', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit' 
       };
       return date.toLocaleString('fr-FR', options).replace(',', '');
     };
@@ -230,6 +231,19 @@ exports.publishToWordPress = async (req, res) => {
       ? `Contenu planifié le ${formattedDate} : ${response.data.URL}` 
       : `Contenu publié sur ${response.data.URL}`;
     await logAction(userId, 'publish_wordpress', logMessage);
+
+    // ✅ Ajouter l'enregistrement dans la table publications
+    await supabase
+      .from('publications')
+      .insert([{
+        user_id: userId,
+        content_url: response.data.URL,
+        platform: 'wordpress',
+        type,
+        status: status === 'future' ? 'scheduled' : 'published', // Enregistrer 'scheduled' si le statut est 'future'
+        published_at: status === 'future' ? date : new Date().toISOString(),
+        content_preview: title // Utiliser uniquement le titre pour content_preview
+      }]);
 
     res.json({ message: 'Contenu traité avec succès sur WordPress', post: response.data });
   } catch (error) {
