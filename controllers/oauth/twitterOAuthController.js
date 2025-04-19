@@ -192,6 +192,7 @@ exports.publishTweet = async (req, res) => {
 
   try {
     let mediaIds = [];
+    let mediaType = null;
 
     // Si des fichiers sont présents, les uploader à Twitter
     if (mediaFiles && mediaFiles.length > 0) {
@@ -206,6 +207,11 @@ exports.publishTweet = async (req, res) => {
         try {
           const mediaId = await TwitterOAuthService.uploadMediaWithOAuth1(file.buffer, file.mimetype);
           mediaIds.push(mediaId);
+
+          // Déterminer le type de média (image ou vidéo)
+          if (!mediaType) {
+            mediaType = file.mimetype.startsWith('image/') ? 'image' : 'video';
+          }
         } catch (uploadError) {
           console.error('❌ Erreur lors de l\'upload du média:', uploadError.message);
           return res.status(500).json({ error: uploadError.message });
@@ -218,6 +224,24 @@ exports.publishTweet = async (req, res) => {
     console.log('🐦 Publication du tweet...');
     const tweet = await TwitterOAuthService.publishTweet(userId, content, mediaIds);
 
+    // Déterminer le type de contenu
+    const contentType = mediaIds.length > 0 
+      ? `text-${mediaType}` // "text-image" ou "text-video"
+      : 'text';
+
+    // Enregistrement de la publication dans la table publications
+    await supabase
+      .from('publications')
+      .insert([{
+        user_id: userId,
+        content_url: `https://twitter.com/i/web/status/${tweet.data.id}`,
+        platform: 'twitter',
+        type: contentType,
+        status: 'published',
+        published_at: new Date().toISOString(),
+        content_preview: content.length > 200 ? content.slice(0,200) + '...' : content
+      }]);
+
     console.log('✅ Tweet publié avec succès:', {
       tweetId: tweet.data.id,
       tweetText: tweet.data.text
@@ -229,7 +253,8 @@ exports.publishTweet = async (req, res) => {
     res.json({
       message: 'Tweet publié avec succès',
       tweetId: tweet.data.id,
-      tweetUrl: `https://twitter.com/i/web/status/${tweet.data.id}`
+      tweetUrl: `https://twitter.com/i/web/status/${tweet.data.id}`,
+      tweetTweet: tweet,
     });
   } catch (error) {
     console.error('❌ Erreur lors de la publication du tweet:', error.message);
