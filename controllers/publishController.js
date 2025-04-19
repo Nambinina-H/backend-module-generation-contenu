@@ -241,7 +241,7 @@ exports.publishToWordPress = async (req, res) => {
         platform: 'wordpress',
         type,
         status: status === 'future' ? 'scheduled' : 'published', // Enregistrer 'scheduled' si le statut est 'future'
-        published_at: status === 'future' ? date : new Date().toISOString(),
+        schedule_time: status === 'future' ? date : new Date().toISOString(),
         content_preview: title // Utiliser uniquement le titre pour content_preview
       }]);
 

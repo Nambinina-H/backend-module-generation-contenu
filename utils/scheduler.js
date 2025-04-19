@@ -1,7 +1,6 @@
 const cron = require('node-cron');
 const { createClient } = require('@supabase/supabase-js');
 const ApiConfigService = require('../services/apiConfigService');
-const { publishToPlatform } = require('../services/makeService');
 
 let supabase = null;
 
@@ -23,31 +22,36 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
     return;
   }
 
-  const { data: scheduledContents, error } = await supabase
-    .from('content')
-    .select('*')
-    .eq('status', 'scheduled')
-    .lte('schedule_time', new Date().toISOString());
+  try {
+    // Obtenir l'heure actuelle en UTC
+    const nowUtc = new Date().toISOString();
+    console.log('🕒 Vérification des publications planifiées avec les critères suivants :');
+    console.log('   - Status : scheduled');
+    console.log('   - Published_at <=', nowUtc);
 
-  if (error) {
-    return console.error('Erreur de récupération des contenus planifiés:', error);
-  }
+    // Récupérer les publications planifiées
+    const { data: scheduledPublications, error } = await supabase
+      .from('publications')
+      .select('*')
+      .eq('status', 'scheduled')
+      .lte('published_at', nowUtc); // Comparer avec l'heure UTC
 
-  if (!scheduledContents || scheduledContents.length === 0) {
-    console.log('Aucun contenu planifié à publier.');
-    return;
-  }
-
-  for (const content of scheduledContents) {
-    const platforms = content.platforms || [];
-    for (const platform of platforms) {
-      try {
-        await publishToPlatform(platform, content.content, content.mediaUrl, content.type);
-      } catch (err) {
-        console.error(`Erreur de publication pour le contenu ${content.id} sur ${platform}:`, err);
-      }
+    if (error) {
+      console.error('Erreur de récupération des publications planifiées:', error);
+      return;
     }
-    await supabase.from('content').update({ status: 'published' }).eq('id', content.id);
+
+    console.log('📋 Données brutes retournées par Supabase :', scheduledPublications);
+
+    if (!scheduledPublications || scheduledPublications.length === 0) {
+      console.log('Aucune publication planifiée à afficher.');
+      return;
+    }
+
+    // Afficher les publications planifiées
+    console.log('📋 Publications planifiées à publier :', scheduledPublications);
+  } catch (err) {
+    console.error('🚨 Erreur inattendue dans le scheduler:', err);
   }
 });
 
