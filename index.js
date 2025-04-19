@@ -25,6 +25,7 @@ const apiConfigRoutes = require('./routes/apiConfigRoutes');
 const wordpressOAuthRoutes = require('./routes/oauth/wordpressRoutes');
 const twitterOAuthRoutes = require('./routes/oauth/twitterRoutes');
 const videoRoutes = require('./routes/videoRoutes');
+const publicationRoutes = require('./routes/publicationRoutes'); // Importer les routes des publications
 
 // Utilisation des routes
 app.use('/auth', authRoutes);
@@ -37,6 +38,7 @@ app.use('/api/config', apiConfigRoutes);
 app.use('/oauth/wordpress', wordpressOAuthRoutes);
 app.use('/oauth/twitter', twitterOAuthRoutes);
 app.use('/video', videoRoutes);
+app.use('/publications', publicationRoutes); // Ajouter les routes des publications
 
 const { initializeSupabaseClient } = require('./utils/scheduler');
 const ApiConfigService = require('./services/apiConfigService');
