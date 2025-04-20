@@ -186,6 +186,31 @@ class LumaAIService {
     }
   }
 
+  static async waitForGenerationCompletion(id) {
+    try {
+      let completed = false;
+      let generationResult = null;
+
+      while (!completed) {
+        console.log('💤 Waiting for generation to complete...');
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // Attendre 3 secondes
+
+        generationResult = await this.getGenerationById(id);
+
+        if (generationResult.state === 'completed') {
+          completed = true;
+        } else if (generationResult.state === 'failed') {
+          throw new Error(`Generation failed: ${generationResult.failure_reason}`);
+        }
+      }
+
+      return generationResult;
+    } catch (error) {
+      console.error('🚨 Error waiting for generation completion:', error.message);
+      throw error;
+    }
+  }
+
   static async addAudioToGeneration(id, prompt, negativePrompt = '', callbackUrl = `${process.env.BASE_URL}/video/callback`) {
     try {
       const url = `https://api.lumalabs.ai/dream-machine/v1/generations/${id}/audio`;

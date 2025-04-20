@@ -177,10 +177,21 @@ exports.addAudio = async (req, res) => {
   }
 
   try {
-    const result = await LumaAIService.addAudioToGeneration(id, prompt, negativePrompt);
-    res.json({ message: 'Audio ajouté avec succès à la génération', result });
+    // Démarrer l'ajout d'audio
+    const audioGeneration = await LumaAIService.addAudioToGeneration(id, prompt, negativePrompt);
+    console.log('🎵 Audio generation started:', audioGeneration.id);
+
+    // Attendre la complétion de la génération
+    const generationResult = await LumaAIService.waitForGenerationCompletion(audioGeneration.id);
+
+    console.log('🎵 Audio generation completed:', generationResult.assets.videoUrl);
+    return res.json({
+      message: 'Audio ajouté avec succès à la génération',
+      videoAudioUrl: generationResult.assets.video,
+      id: generationResult.id,
+    });
   } catch (error) {
     console.error('🚨 Erreur lors de l\'ajout d\'audio à la génération:', error.message);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
