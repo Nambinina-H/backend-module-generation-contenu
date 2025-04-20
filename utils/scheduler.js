@@ -41,7 +41,7 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
       return;
     }
 
-    console.log('📋 Données brutes retournées par Supabase :', scheduledPublications);
+    // console.log('📋 Données brutes retournées par Supabase :', scheduledPublications);
 
     if (!scheduledPublications || scheduledPublications.length === 0) {
       console.log('Aucune publication planifiée à afficher.');
@@ -49,7 +49,7 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
     }
 
     // Afficher les publications planifiées
-    console.log('📋 Publications planifiées à publier :', scheduledPublications);
+    // console.log('📋 Publications planifiées à publier :', scheduledPublications);
   } catch (err) {
     console.error('🚨 Erreur inattendue dans le scheduler:', err);
   }

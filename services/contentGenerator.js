@@ -63,6 +63,42 @@ exports.generateVideoDescription = async (keywords) => {
   }
 };
 
+/**
+ * Génère une description d'audio en utilisant OpenAI.
+ * @param {string} content - Contenu pour générer la description.
+ * @returns {Promise<string|null>} - La description générée.
+ */
+exports.generateAudioDescription = async (content) => {
+  const openai = getOpenAIClient();
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un expert en création de descriptions audio. Ton rôle est de générer une description concise et engageante basée sur le contenu fourni."
+        },
+        {
+          role: "user",
+          content: `Génère une description pour l'audio suivant : "${content}".`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 150
+    });
+
+    if (response.choices && response.choices.length > 0 && response.choices[0].message) {
+      return response.choices[0].message.content.trim();
+    } else {
+      console.error("Réponse inattendue de l'API OpenAI:", response);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'appel à OpenAI :", error);
+    return null;
+  }
+};
 
 /**
  * Génère du contenu textuel en utilisant OpenAI.
