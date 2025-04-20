@@ -77,11 +77,21 @@ exports.generateAudioDescription = async (content) => {
       messages: [
         {
           role: "system",
-          content: "Tu es un expert en création de descriptions audio. Ton rôle est de générer une description concise et engageante basée sur le contenu fourni."
+          content: `
+Tu es un expert en design sonore et ambiance audio. Ton objectif est de transformer une description textuelle en un prompt immersif et précis pour générer un paysage sonore réaliste ou artistique.
+Génère une description audio :
+- claire, concise (1 à 2 phrases maximum)
+- sensorielle et immersive (le lecteur doit entendre la scène dans sa tête)
+- avec des détails sonores spécifiques (exemples : sons naturels, mécaniques, humains, ambiance, intensité…)
+- adaptée à un générateur audio IA comme Luma
+- sans mentionner qu’il s’agit d’une description ou d’un audio
+
+Indique s’il y a de la musique ou non, s’il y a des voix humaines, et le ton général (calme, intense, mystique, joyeux...).
+`
         },
         {
           role: "user",
-          content: `Génère une description pour l'audio suivant : "${content}".`
+          content: `Voici la scène : "${content}". Génère la description audio.`
         }
       ],
       temperature: 0.7,
