@@ -26,6 +26,7 @@ const wordpressOAuthRoutes = require('./routes/oauth/wordpressRoutes');
 const twitterOAuthRoutes = require('./routes/oauth/twitterRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const publicationRoutes = require('./routes/publicationRoutes'); // Importer les routes des publications
+const analyticsRoutes = require('./routes/analyticsRoutes'); // Importer les routes des statistiques
 
 // Utilisation des routes
 app.use('/auth', authRoutes);
@@ -39,6 +40,7 @@ app.use('/oauth/wordpress', wordpressOAuthRoutes);
 app.use('/oauth/twitter', twitterOAuthRoutes);
 app.use('/video', videoRoutes);
 app.use('/publications', publicationRoutes); // Ajouter les routes des publications
+app.use('/analytics', analyticsRoutes); // Ajouter les routes des statistiques
 
 const { initializeSupabaseClient } = require('./utils/scheduler');
 const ApiConfigService = require('./services/apiConfigService');
