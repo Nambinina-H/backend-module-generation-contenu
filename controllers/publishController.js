@@ -80,7 +80,7 @@ exports.publishNow = async (req, res) => {
     return res.status(400).json({ error: "Merci de fournir un tableau de plateformes et le type de contenu." });
   }
 
-  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || 'text-video') && (!content || !mediaUrl))) {
+  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || type === 'text-video') && (!content || !mediaUrl))) {
     return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
   }
 
