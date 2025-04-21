@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { supabase } = require('./supabaseService');
 const ApiConfigService = require('./apiConfigService');
 
 const getMakeWebhooks = () => {
@@ -17,21 +18,24 @@ const getMakeWebhooks = () => {
 
 /**
  * Envoie un contenu à Make.com via le webhook de la plateforme cible.
+ * @param {string} userId - ID de l'utilisateur.
  * @param {string} platform - Plateforme cible (facebook, linkedin, instagram, twitter, wordpress).
  * @param {string} content - Contenu à publier.
  * @param {string} mediaUrl - URL du média à publier.
  * @param {string} type - Type de contenu à publier.
  * @returns {Promise<Object>} - Réponse de Make.com.
  */
-exports.publishToPlatform = async (platform, content, mediaUrl, type) => {
-  const webhooks = getMakeWebhooks();
-  const webhookUrl = webhooks[platform.toLowerCase()];
-
-  if (!webhookUrl) {
-    throw new Error(`Aucun webhook défini pour la plateforme : ${platform}`);
-  }
-
+exports.publishToPlatform = async (userId, platform, content, mediaUrl, type) => {
   try {
+    // Récupérer le webhook spécifique à l'utilisateur via le cache ou la base de données
+    const config = await ApiConfigService.getKeyForUser(userId, 'makeClient');
+    if (!config || !config.webhookURL) {
+      throw new Error('Le webhookURL est manquant ou introuvable pour cet utilisateur.');
+    }
+
+    const webhookUrl = config.webhookURL;
+
+    // Envoyer les données au webhook
     const response = await axios.post(webhookUrl, {
       platform,
       mediaUrl,

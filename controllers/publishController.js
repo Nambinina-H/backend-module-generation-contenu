@@ -88,7 +88,8 @@ exports.publishNow = async (req, res) => {
     let publishResponses = {};
 
     for (const platform of platforms) {
-      const response = await publishToPlatform(platform, content, mediaUrl, type);
+      // Utiliser la méthode mise à jour de makeService
+      const response = await publishToPlatform(userId, platform, content, mediaUrl, type);
       publishResponses[platform] = response;
     }
 

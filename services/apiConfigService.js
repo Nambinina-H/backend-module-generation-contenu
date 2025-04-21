@@ -25,6 +25,19 @@ class ApiConfigService {
     }
   }
 
+  static async getKeyForUser(userId, platform) {
+    const cachedKey = apiKeysCache.get(platform.toLowerCase());
+    if (cachedKey) {
+      return cachedKey;
+    }
+
+    console.log(`🔄 Clé API pour ${platform} non trouvée dans le cache, rechargement depuis la base de données...`);
+    const keysMap = await this.getApiKeys(userId);
+    apiKeysCache = new Map([...apiKeysCache, ...keysMap]);
+
+    return keysMap.get(platform.toLowerCase());
+  }
+
   static initRealtimeSubscription() {
     const channel = supabase.channel('api-config-changes').on('postgres_changes', 
         {
