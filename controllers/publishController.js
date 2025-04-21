@@ -117,7 +117,7 @@ exports.publishNow = async (req, res) => {
         }]);
     }
 
-    await logAction(userId, "publish_content", `Contenu publié sur ${platforms.join(", ")}`);
+    await logAction(userId, "publish_content", `Contenu publié sur ${contentUrl}`);
 
     res.json({ message: "Contenu publié avec succès", details: publishResponses });
   } catch (error) {
