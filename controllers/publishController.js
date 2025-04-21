@@ -80,11 +80,7 @@ exports.publishNow = async (req, res) => {
     return res.status(400).json({ error: "Merci de fournir un tableau de plateformes et le type de contenu." });
   }
 
-<<<<<<< HEAD
   if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || 'text-video') && (!content || !mediaUrl))) {
-=======
-  if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || type === 'text-video') && (!content || !mediaUrl))) {
->>>>>>> cc4eab2374199c45fd9db018eb4191204450800e
     return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
   }
 
@@ -95,7 +91,6 @@ exports.publishNow = async (req, res) => {
       // Utiliser la méthode mise à jour de makeService
       const response = await publishToPlatform(userId, platform, content, mediaUrl, type);
       publishResponses[platform] = response;
-<<<<<<< HEAD
 
       // Adapter content_url en fonction de la plateforme
       let contentUrl;
@@ -120,8 +115,6 @@ exports.publishNow = async (req, res) => {
           schedule_time: new Date().toISOString(),
           content_preview: content.slice(0, 100) // Limiter l'aperçu à 100 caractères
         }]);
-=======
->>>>>>> cc4eab2374199c45fd9db018eb4191204450800e
     }
 
     await logAction(userId, "publish_content", `Contenu publié sur ${platforms.join(", ")}`);
