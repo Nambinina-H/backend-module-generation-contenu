@@ -94,7 +94,7 @@ exports.publishNow = async (req, res) => {
 
       // Adapter content_url en fonction de la plateforme
       let contentUrl;
-      if (platform === 'facebook' || platform === 'instagram') {
+      if (platform === 'facebook') {
         contentUrl = `https://www.${platform}.com/${response}`;
       } else if (platform === 'linkedin') {
         contentUrl = `https://www.linkedin.com/feed/update/${response}`;
