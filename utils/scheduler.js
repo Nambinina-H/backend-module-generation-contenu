@@ -27,29 +27,25 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
     const nowUtc = new Date().toISOString();
     console.log('🕒 Vérification des publications planifiées avec les critères suivants :');
     console.log('   - Status : scheduled');
-    console.log('   - Published_at <=', nowUtc);
+    console.log('   - Schedule_time <=', nowUtc);
 
     // Récupérer les publications planifiées
     const { data: scheduledPublications, error } = await supabase
       .from('publications')
       .select('*')
-      .eq('status', 'scheduled')
-      .lte('published_at', nowUtc); // Comparer avec l'heure UTC
+      .eq('status', 'scheduled') // Filtrer par statut 'scheduled'
+      .lte('schedule_time', nowUtc); // Comparer schedule_time avec l'heure actuelle en UTC
 
     if (error) {
       console.error('Erreur de récupération des publications planifiées:', error);
       return;
     }
 
-    // console.log('📋 Données brutes retournées par Supabase :', scheduledPublications);
-
     if (!scheduledPublications || scheduledPublications.length === 0) {
-      console.log('Aucune publication planifiée à afficher.');
-      return;
+      console.log('Aucune publication planifiée à publier.');
+    } else {
+      console.log(`📋 Nombre de publications planifiées à publier : ${scheduledPublications.length}`);
     }
-
-    // Afficher les publications planifiées
-    // console.log('📋 Publications planifiées à publier :', scheduledPublications);
   } catch (err) {
     console.error('🚨 Erreur inattendue dans le scheduler:', err);
   }
