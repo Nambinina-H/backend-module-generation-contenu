@@ -87,13 +87,14 @@ exports.publishNow = async (req, res) => {
   try {
     let publishResponses = {};
 
+    let contentUrl; 
+
     for (const platform of platforms) {
       // Utiliser la méthode mise à jour de makeService
       const response = await publishToPlatform(userId, platform, content, mediaUrl, type);
       publishResponses[platform] = response;
 
       // Adapter content_url en fonction de la plateforme
-      let contentUrl;
       if (platform === 'facebook') {
         contentUrl = `https://www.${platform}.com/${response}`;
       } else if (platform === 'linkedin') {
