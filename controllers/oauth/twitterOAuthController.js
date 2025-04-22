@@ -174,7 +174,7 @@ exports.disconnect = async (req, res) => {
 exports.publishTweet = async (req, res) => {
   console.log('📤 -------- Début de la demande de publication d\'un tweet --------');
   
-  const { content } = req.body;
+  const { content, scheduledDate } = req.body; // Ajout de scheduledDate pour la planification
   const userId = req.user.id;
   const mediaFiles = req.files; // Récupérer les fichiers uploadés
 
@@ -182,7 +182,8 @@ exports.publishTweet = async (req, res) => {
     userId,
     contentLength: content?.length,
     contentSample: content ? content.substring(0, 30) + (content.length > 30 ? '...' : '') : 'absent',
-    hasMedia: !!mediaFiles?.length
+    hasMedia: !!mediaFiles?.length,
+    scheduledDate // Ajout du log pour scheduledDate
   });
 
   if (!content) {
@@ -220,42 +221,66 @@ exports.publishTweet = async (req, res) => {
       console.log('✅ Médias uploadés avec succès, media_ids:', mediaIds);
     }
 
-    // Publier le tweet avec ou sans médias
-    console.log('🐦 Publication du tweet...');
-    const tweet = await TwitterOAuthService.publishTweet(userId, content, mediaIds);
-
     // Déterminer le type de contenu
     const contentType = mediaIds.length > 0 
       ? `text-${mediaType}` // "text-image" ou "text-video"
       : 'text';
 
-    // Enregistrement de la publication dans la table publications
-    await supabase
-      .from('publications')
-      .insert([{
-        user_id: userId,
-        content_url: `https://twitter.com/i/web/status/${tweet.data.id}`,
-        platform: 'twitter',
-        type: contentType,
-        status: 'published',
-        published_at: new Date().toISOString(),
-        content_preview: content.length > 200 ? content.slice(0,200) + '...' : content
-      }]);
+    // Vérifier si c'est une planification ou une publication immédiate
+    if (scheduledDate) {
+      // Logique de planification
+      console.log('📅 Planification du tweet pour la date:', scheduledDate);
 
-    console.log('✅ Tweet publié avec succès:', {
-      tweetId: tweet.data.id,
-      tweetText: tweet.data.text
-    });
+      await supabase
+        .from('publications')
+        .insert([{
+          user_id: userId,
+          content_url: '', // Vide pour un contenu planifié
+          platform: 'twitter',
+          type: contentType,
+          status: 'scheduled',
+          schedule_time: scheduledDate,
+          content_preview: content.length > 200 ? content.slice(0,200) + '...' : content,
+          media_url: mediaIds.length > 0 ? mediaIds.join(',') : null // Stocker les IDs des médias
+        }]);
 
-    await logAction(userId, 'twitter_publish', `Tweet publié : https://twitter.com/i/web/status/${tweet.data.id}`);
-    console.log('📤 -------- Fin de la demande de publication d\'un tweet --------');
-    
-    res.json({
-      message: 'Tweet publié avec succès',
-      tweetId: tweet.data.id,
-      tweetUrl: `https://twitter.com/i/web/status/${tweet.data.id}`,
-      tweetTweet: tweet,
-    });
+      await logAction(userId, 'twitter_schedule', `Tweet planifié pour ${scheduledDate}`);
+      console.log('📤 -------- Fin de la demande de planification d\'un tweet --------');
+
+      return res.json({ message: 'Tweet planifié avec succès' });
+    } else {
+      // Logique de publication immédiate (code existant)
+      console.log('🐦 Publication immédiate du tweet...');
+      const tweet = await TwitterOAuthService.publishTweet(userId, content, mediaIds);
+
+      // Enregistrement de la publication dans la table publications
+      await supabase
+        .from('publications')
+        .insert([{
+          user_id: userId,
+          content_url: `https://twitter.com/i/web/status/${tweet.data.id}`,
+          platform: 'twitter',
+          type: contentType,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          content_preview: content.length > 200 ? content.slice(0,200) + '...' : content
+        }]);
+
+      console.log('✅ Tweet publié avec succès:', {
+        tweetId: tweet.data.id,
+        tweetText: tweet.data.text
+      });
+
+      await logAction(userId, 'twitter_publish', `Tweet publié : https://twitter.com/i/web/status/${tweet.data.id}`);
+      console.log('📤 -------- Fin de la demande de publication d\'un tweet --------');
+      
+      res.json({
+        message: 'Tweet publié avec succès',
+        tweetId: tweet.data.id,
+        tweetUrl: `https://twitter.com/i/web/status/${tweet.data.id}`,
+        tweetTweet: tweet,
+      });
+    }
   } catch (error) {
     console.error('❌ Erreur lors de la publication du tweet:', error.message);
 
