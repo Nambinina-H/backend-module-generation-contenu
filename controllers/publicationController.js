@@ -52,7 +52,7 @@ exports.getAllPublications = async (req, res) => {
 
 exports.getUserPublications = async (req, res) => {
   const userId = req.user.id;
-  const { platform, type, status, startDate, endDate, page = 1, limit = 10, sort = 'published_at:desc' } = req.query;
+  const { platform, type, status, startDate, endDate, page = 1, limit = 10, sort = 'schedule_time:desc' } = req.query;
 
   try {
     let query = supabase.from('publications').select('*', { count: 'exact' }).eq('user_id', userId);
