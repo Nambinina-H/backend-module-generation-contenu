@@ -61,7 +61,7 @@ exports.schedulePublication = async (req, res) => {
     }
 
     // Garder le log
-    await logAction(userId, `schedule_${platform}`, `Contenu planifié le ${scheduledDate} sur ${platform}`);
+    await logAction(userId, `schedule_${platform}`, `Publication planifiée le ${scheduledDate}`);
 
     res.json({ message: "Contenu planifié avec succès" });b
   } catch (error) {
@@ -258,7 +258,7 @@ exports.publishToWordPress = async (req, res) => {
 
     const formattedDate = formatDate(response.data.date);
     const logMessage = status === 'future' 
-      ? `Contenu planifié le ${formattedDate} : ${response.data.URL}` 
+      ? `Publication planifiée le ${formattedDate} : ${response.data.URL}` 
       : `Lien vers la publication : ${response.data.URL}`;
     await logAction(userId, 'publish_wordpress', logMessage);
 
