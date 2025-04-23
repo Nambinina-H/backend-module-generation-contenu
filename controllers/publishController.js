@@ -63,7 +63,7 @@ exports.schedulePublication = async (req, res) => {
     // Garder le log
     await logAction(userId, `schedule_${platform}`, `Publication planifiée le ${scheduledDate}`);
 
-    res.json({ message: "Contenu planifié avec succès" });b
+    res.json({ message: "Contenu planifié avec succès" });
   } catch (error) {
     console.error("🚨 Erreur serveur :", error);
     res.status(500).json({ error: error.message });
