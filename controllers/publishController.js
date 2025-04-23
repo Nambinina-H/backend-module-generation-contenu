@@ -61,9 +61,9 @@ exports.schedulePublication = async (req, res) => {
     }
 
     // Garder le log
-    await logAction(userId, "schedule_content", `Contenu planifié sur ${platform} à ${scheduledDate}`);
+    await logAction(userId, `schedule_${platform}`, `Contenu planifié le ${scheduledDate} sur ${platform}`);
 
-    res.json({ message: "Contenu planifié avec succès" });
+    res.json({ message: "Contenu planifié avec succès" });b
   } catch (error) {
     console.error("🚨 Erreur serveur :", error);
     res.status(500).json({ error: error.message });
@@ -121,7 +121,7 @@ exports.publishNow = async (req, res) => {
         }]);
 
       // Ajouter un log spécifique à la plateforme
-      await logAction(userId, `publish_${platform}`, `Contenu publié sur ${contentUrl}`);
+      await logAction(userId, `publish_${platform}`, `Lien vers la publication : ${contentUrl}`);
     }
 
     res.json({ message: "Contenu publié avec succès", details: publishResponses });
@@ -259,7 +259,7 @@ exports.publishToWordPress = async (req, res) => {
     const formattedDate = formatDate(response.data.date);
     const logMessage = status === 'future' 
       ? `Contenu planifié le ${formattedDate} : ${response.data.URL}` 
-      : `Contenu publié sur ${response.data.URL}`;
+      : `Lien vers la publication : ${response.data.URL}`;
     await logAction(userId, 'publish_wordpress', logMessage);
 
     // ✅ Ajouter l'enregistrement dans la table publications
