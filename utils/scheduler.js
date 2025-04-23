@@ -94,8 +94,8 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
           // Ajouter un log de succès
           await logAction(
             publication.user_id,
-            'publish_success',
-            `Contenu publié sur ${publication.platform} : ${contentUrl}`
+            `publish_${publication.platform}`,
+            `Contenu publié sur ${contentUrl}`
           );
           console.log('✅ Publication réussie pour:', publication.platform);
         } else {
@@ -116,7 +116,7 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
         // Ajouter un log d'erreur
         await logAction(
           publication.user_id,
-          'publish_failed',
+          `publish_failed_${publication.platform}`,
           `Erreur lors de la publication sur ${publication.platform} : ${publishError.message}`
         );
       }

@@ -119,9 +119,10 @@ exports.publishNow = async (req, res) => {
           schedule_time: new Date().toISOString(),
           content_preview: content.slice(0, 100) // Limiter l'aperçu à 100 caractères
         }]);
-    }
 
-    await logAction(userId, "publish_content", `Contenu publié sur ${contentUrl}`);
+      // Ajouter un log spécifique à la plateforme
+      await logAction(userId, `publish_${platform}`, `Contenu publié sur ${contentUrl}`);
+    }
 
     res.json({ message: "Contenu publié avec succès", details: publishResponses });
   } catch (error) {
