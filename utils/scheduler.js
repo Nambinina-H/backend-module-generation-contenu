@@ -95,7 +95,7 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
           await logAction(
             publication.user_id,
             `publish_${publication.platform}`,
-            `Contenu publié sur ${contentUrl}`
+            `Lien vers la publication : ${contentUrl}`
           );
           console.log('✅ Publication réussie pour:', publication.platform);
         } else {
