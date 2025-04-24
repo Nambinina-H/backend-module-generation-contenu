@@ -54,14 +54,41 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
       try {
         console.log('📤 Publication en cours pour:', publication);
 
-        // Mettre le statut à "processing" pour éviter les duplications
-        await supabase
-          .from('publications')
-          .update({ status: 'processing' })
-          .eq('id', publication.id);
+        // Traitement spécial pour WordPress
+        if (publication.platform === 'wordpress') {
+          console.log('🔄 Publication WordPress détectée, marquage direct comme publiée');
+          
+          // Mettre à jour la table `publications` directement à "published"
+          await supabase
+            .from('publications')
+            .update({
+              status: 'published',
+              published_at: `${publication.schedule_time}`,
+            })
+            .eq('id', publication.id);
+          
+          // Ajouter un log de succès spécifique pour WordPress
+          await logAction(
+            publication.user_id,
+            `publish_wordpress`,
+            `Lien vers la publication : : ${publication.content_url}`
+          );
+          
+          console.log('✅ Publication WordPress mise à jour avec succès');
+          continue; // Passer à la publication suivante
+        }
 
         // Appliquer la logique uniquement pour Facebook, LinkedIn et Instagram
         if (['facebook', 'linkedin', 'instagram'].includes(publication.platform)) {
+          // Mettre le statut à "processing" seulement avant de commencer le traitement réel
+          // et après avoir vérifié que ce n'est pas WordPress
+          await supabase
+            .from('publications')
+            .update({ status: 'processing' })
+            .eq('id', publication.id);
+            
+          console.log(`🔄 Statut de la publication ${publication.id} mis à "processing"`);
+
           // Appeler la fonction de publication
           const response = await publishToPlatform(
             publication.user_id,
