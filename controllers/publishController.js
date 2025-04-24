@@ -243,24 +243,12 @@ exports.publishToWordPress = async (req, res) => {
       }
     );
 
-    // Enregistrer le log de publication ou de planification
-    const formatDate = (isoDate) => {
-      const date = new Date(isoDate);
-      const options = { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      };
-      return date.toLocaleString('fr-FR', options).replace(',', '');
-    };
-
-    const formattedDate = formatDate(response.data.date);
+    // Enregistrer le log de publication ou de planification sans formater la date
     const logMessage = status === 'future' 
-      ? `Publication planifiée le ${formattedDate} : ${response.data.URL}` 
+      ? `Publication planifiée le ${date} : ${response.data.URL}` 
       : `Lien vers la publication : ${response.data.URL}`;
-    await logAction(userId, 'publish_wordpress', logMessage);
+    const logActionType = status === 'future' ? 'schedule_wordpress' : 'publish_wordpress';
+    await logAction(userId, logActionType, logMessage);
 
     // ✅ Ajouter l'enregistrement dans la table publications
     await supabase
