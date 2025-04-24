@@ -71,7 +71,7 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
           await logAction(
             publication.user_id,
             `publish_wordpress`,
-            `Lien vers la publication : : ${publication.content_url}`
+            `Lien vers la publication : ${publication.content_url}`
           );
           
           console.log('✅ Publication WordPress mise à jour avec succès');
