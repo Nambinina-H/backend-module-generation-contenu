@@ -271,7 +271,7 @@ exports.publishTweet = async (req, res) => {
         tweetText: tweet.data.text
       });
 
-      await logAction(userId, 'twitter_publish', `Tweet publié : https://twitter.com/i/web/status/${tweet.data.id}`);
+      await logAction(userId, 'publish_twitter', `Lien vers la publication : https://twitter.com/i/web/status/${tweet.data.id}`);
       console.log('📤 -------- Fin de la demande de publication d\'un tweet --------');
       
       res.json({

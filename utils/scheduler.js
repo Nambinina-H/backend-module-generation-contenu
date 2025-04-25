@@ -3,6 +3,8 @@ const { createClient } = require('@supabase/supabase-js');
 const ApiConfigService = require('../services/apiConfigService');
 const { publishToPlatform } = require('../services/makeService');
 const { logAction } = require('../services/logService');
+// Ajouter l'import du service Twitter
+const TwitterOAuthService = require('../services/oauth/twitterOAuthService');
 
 let supabase = null;
 
@@ -75,6 +77,60 @@ const scheduledTask = cron.schedule('* * * * *', async () => {
           );
           
           console.log('✅ Publication WordPress mise à jour avec succès');
+          continue; // Passer à la publication suivante
+        }
+
+        // Traitement spécial pour Twitter
+        if (publication.platform === 'twitter') {
+          console.log('🔄 Publication Twitter détectée, utilisation de l\'API Twitter');
+          
+          // Mettre le statut à "processing" avant de commencer
+          await supabase
+            .from('publications')
+            .update({ status: 'processing' })
+            .eq('id', publication.id);
+          
+          console.log(`🔄 Statut de la publication ${publication.id} mis à "processing"`);
+          
+          // Récupérer le contenu et les médias
+          const content = publication.content_preview;
+          let mediaIds = [];
+          
+          // Si des médias sont présents, traiter les IDs
+          if (publication.media_url) {
+            mediaIds = publication.media_url.split(',');
+            console.log('🖼️ IDs médias récupérés:', mediaIds);
+          }
+          
+          // Publier le tweet avec TwitterOAuthService
+          console.log('🐦 Publication du tweet avec contenu:', content);
+          const tweet = await TwitterOAuthService.publishTweet(
+            publication.user_id,
+            content,
+            mediaIds
+          );
+          
+          // Construire l'URL du tweet
+          const tweetUrl = `https://twitter.com/i/web/status/${tweet.data.id}`;
+          
+          // Mettre à jour la table `publications` après succès
+          await supabase
+            .from('publications')
+            .update({
+              status: 'published',
+              published_at: new Date().toISOString(),
+              content_url: tweetUrl,
+            })
+            .eq('id', publication.id);
+          
+          // Ajouter un log de succès
+          await logAction(
+            publication.user_id,
+            'publish_twitter',
+            `Lien vers la publication : ${tweetUrl}`
+          );
+          
+          console.log('✅ Tweet publié avec succès, ID:', tweet.data.id);
           continue; // Passer à la publication suivante
         }
 
