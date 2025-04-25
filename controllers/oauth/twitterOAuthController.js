@@ -244,7 +244,7 @@ exports.publishTweet = async (req, res) => {
           media_url: mediaIds.length > 0 ? mediaIds.join(',') : null // Stocker les IDs des médias
         }]);
 
-      await logAction(userId, 'twitter_schedule', `Tweet planifié pour ${scheduledDate}`);
+      await logAction(userId, 'schedule_twitter', `Tweet planifié pour ${scheduledDate}`);
       console.log('📤 -------- Fin de la demande de planification d\'un tweet --------');
 
       return res.json({ message: 'Tweet planifié avec succès' });
