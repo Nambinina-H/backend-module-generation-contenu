@@ -240,7 +240,7 @@ exports.publishTweet = async (req, res) => {
           type: contentType,
           status: 'scheduled',
           schedule_time: scheduledDate,
-          content_preview: content.length > 200 ? content.slice(0,200) + '...' : content,
+          content_preview: content, // Stocker le contenu complet sans formatage
           media_url: mediaIds.length > 0 ? mediaIds.join(',') : null // Stocker les IDs des médias
         }]);
 
@@ -249,7 +249,7 @@ exports.publishTweet = async (req, res) => {
 
       return res.json({ message: 'Tweet planifié avec succès' });
     } else {
-      // Logique de publication immédiate (code existant)
+      // Logique de publication immédiate
       console.log('🐦 Publication immédiate du tweet...');
       const tweet = await TwitterOAuthService.publishTweet(userId, content, mediaIds);
 
@@ -263,7 +263,7 @@ exports.publishTweet = async (req, res) => {
           type: contentType,
           status: 'published',
           published_at: new Date().toISOString(),
-          content_preview: content.length > 200 ? content.slice(0,200) + '...' : content
+          content_preview: content // Stocker le contenu complet sans formatage
         }]);
 
       console.log('✅ Tweet publié avec succès:', {

@@ -117,7 +117,7 @@ exports.publishNow = async (req, res) => {
           type,
           status: 'published',
           schedule_time: new Date().toISOString(),
-          content_preview: content.slice(0, 100) // Limiter l'aperçu à 100 caractères
+          content_preview: content // Stocker le contenu complet sans formatage
         }]);
 
       // Ajouter un log spécifique à la plateforme
