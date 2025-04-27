@@ -41,6 +41,13 @@ exports.schedulePublication = async (req, res) => {
     return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
   }
 
+  // Vérifier si l'utilisateur est connecté à Make.com pour les plateformes qui en dépendent
+  if (['facebook', 'linkedin', 'instagram'].includes(platform) && !req.user.isMakeConnected) {
+    return res.status(400).json({ 
+      error: `Vous n'êtes pas connecté à Make.com. Veuillez configurer Make.com dans votre profil pour publier sur ${platform}.` 
+    });
+  }
+
   try {
     // Enregistrer dans la table publications
     const { error } = await supabase
@@ -85,6 +92,14 @@ exports.publishNow = async (req, res) => {
 
   if ((type === 'text' && !content) || (!mediaUrl && (type === 'image' || type === 'video')) || ((type === 'text-image' || type === 'text-video') && (!content || !mediaUrl))) {
     return res.status(400).json({ error: "Merci de fournir le contenu ou l'URL du média approprié." });
+  }
+
+  // Vérifier si l'utilisateur est connecté à Make.com pour les plateformes dépendantes
+  const makeRequiredPlatforms = platforms.filter(platform => ['facebook', 'linkedin', 'instagram'].includes(platform));
+  if (makeRequiredPlatforms.length > 0 && !req.user.isMakeConnected) {
+    return res.status(400).json({ 
+      error: `Vous n'êtes pas connecté à Make.com. Veuillez configurer Make.com dans votre profil pour publier sur ${makeRequiredPlatforms.join(', ')}.` 
+    });
   }
 
   try {
