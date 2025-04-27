@@ -178,6 +178,14 @@ exports.publishTweet = async (req, res) => {
   const userId = req.user.id;
   const mediaFiles = req.files; // Récupérer les fichiers uploadés
 
+  // Vérifier si l'utilisateur est connecté à Twitter
+  if (!req.user.isTwitterConnected) {
+    console.error('❌ Utilisateur non connecté à Twitter');
+    return res.status(400).json({ 
+      error: 'Vous n\'êtes pas connecté à Twitter. Veuillez connecter votre compte Twitter pour continuer.'
+    });
+  }
+
   console.log('📤 Demande de publication d\'un tweet:', { 
     userId,
     contentLength: content?.length,

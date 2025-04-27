@@ -28,12 +28,21 @@ const getMakeWebhooks = () => {
 exports.publishToPlatform = async (userId, platform, content, mediaUrl, type) => {
   try {
     // Récupérer le webhook spécifique à l'utilisateur via le cache ou la base de données
+    console.log(`🔍 Recherche de makeClient pour utilisateur: ${userId}`);
     const config = await ApiConfigService.getKeyForUser(userId, 'makeClient');
+    
+    console.log('🔑 Configuration Make.com récupérée:', {
+      utilisateur: userId,
+      configTrouvée: !!config,
+      webhookExiste: config && !!config.webhookURL
+    });
+    
     if (!config || !config.webhookURL) {
       throw new Error('Le webhookURL est manquant ou introuvable pour cet utilisateur.');
     }
 
     const webhookUrl = config.webhookURL;
+    console.log(`📤 Envoi au webhook Make.com: ${webhookUrl.substring(0, 30)}...`);
 
     // Envoyer les données au webhook
     const response = await axios.post(webhookUrl, {
@@ -43,6 +52,7 @@ exports.publishToPlatform = async (userId, platform, content, mediaUrl, type) =>
       type,
     });
 
+    console.log(`✅ Publication réussie sur ${platform} pour utilisateur ${userId}`);
     return response.data;
   } catch (error) {
     console.error(`🚨 Erreur de publication sur ${platform}:`, error.response?.data || error.message);
