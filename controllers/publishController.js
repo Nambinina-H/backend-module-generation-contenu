@@ -22,6 +22,16 @@ const getSupabaseClient = () => {
 };
 
 /**
+ * Nettoie un titre HTML en supprimant toutes les balises.
+ * @param {string} htmlTitle - Titre contenant potentiellement des balises HTML.
+ * @returns {string} - Titre sans balises HTML.
+ */
+const cleanHtmlTitle = (htmlTitle) => {
+  if (!htmlTitle) return '';
+  return htmlTitle.replace(/<\/?[^>]+(>|$)/g, "");
+};
+
+/**
  * Planifie la publication d'un contenu.
  * @param {Object} req - Requête Express.
  * @param {Object} res - Réponse Express.
@@ -275,7 +285,7 @@ exports.publishToWordPress = async (req, res) => {
         type,
         status: status === 'future' ? 'scheduled' : 'published', // Enregistrer 'scheduled' si le statut est 'future'
         schedule_time: status === 'future' ? date : new Date().toISOString(),
-        content_preview: title // Utiliser uniquement le titre pour content_preview
+        content_preview: cleanHtmlTitle(title) // Nettoyer le titre HTML avant de l'enregistrer
       }]);
 
     res.json({ message: 'Contenu traité avec succès sur WordPress', post: response.data });
