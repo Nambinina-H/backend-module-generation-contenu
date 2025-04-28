@@ -25,7 +25,7 @@ exports.getWeeklyAnalytics = async (req, res) => {
 
     // Initialiser les statistiques par jour et par plateforme
     const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-    const platforms = ['facebook', 'linkedin', 'twitter', 'instagram']; // Liste des plateformes à inclure
+    const platforms = ['facebook', 'linkedin', 'twitter', 'instagram', 'wordpress']; // Liste des plateformes à inclure
     const dailyStats = {};
     const platformTotals = {};
 
