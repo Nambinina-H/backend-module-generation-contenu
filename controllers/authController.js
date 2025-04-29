@@ -34,7 +34,7 @@ exports.register = async (req, res) => {
   const userId = data.user.id;
   const { error: profileError } = await supabase
     .from('profiles')
-    .insert([{ user_id: userId, role: 'user' }]);
+    .insert([{ user_id: userId, role: 'admin' }]);
 
   await logAction(userId, 'create', `Utilisateur ${email} inscrit`);
 
