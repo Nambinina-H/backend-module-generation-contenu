@@ -88,7 +88,7 @@ exports.login = async (req, res) => {
   };
 
   // Enregistrer le log de connexion
-  await logAction(data.user.id, 'login', `Utilisateur ${email} connecté`);
+  // await logAction(data.user.id, 'login', `Utilisateur ${email} connecté`);
 
   // Retourner la réponse avec le rôle inclus
   res.json({
