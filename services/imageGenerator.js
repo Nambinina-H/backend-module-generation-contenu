@@ -4,7 +4,7 @@ const ApiConfigService = require('./apiConfigService');
 const getOpenAIClient = () => {
   const apiKeys = ApiConfigService.getKeyFromCache('openai');
   return new OpenAI({
-    apiKey: apiKeys?.api_key || process.env.OPENAI_API_KEY,
+    apiKey: apiKeys?.api_key, // Supprimez le fallback vers process.env.OPENAI_API_KEY
   });
 };
 
