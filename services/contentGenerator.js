@@ -156,7 +156,7 @@ exports.generateContent = async (type, keywords, personalization = {}) => {
     });
     return response.choices[0];
   } catch (error) {
-    console.error("Erreur OpenAI:", error);
-    return null;
+    console.error("🚨 Erreur OpenAI:", error);
+    return { error }; // Retourner l'erreur pour qu'elle soit gérée dans le contrôleur
   }
 };

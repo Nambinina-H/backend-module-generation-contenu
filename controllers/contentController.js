@@ -35,9 +35,11 @@ exports.generate = async (req, res) => {
     const generatedResponse = await generateContent(type, keywords, personalization);
     console.log("📌 Contenu généré :", generatedResponse); // Debugging
   
-    // Vérifier si le contenu est vide
-    if (!generatedResponse) {
-      return res.status(500).json({ error: "Erreur lors de la génération du contenu." });
+    // Vérifier si le contenu est vide ou si une erreur est présente
+    if (!generatedResponse || generatedResponse.error) {
+      const errorMessage = generatedResponse?.error?.message || "Erreur lors de la génération du contenu.";
+      console.error("🚨 Erreur OpenAI:", generatedResponse?.error || "Réponse vide");
+      return res.status(500).json({ error: errorMessage });
     }
   
     // Extraire uniquement le contenu
@@ -84,7 +86,7 @@ exports.listUserContent = async (req, res) => {
 
     res.json({ message: 'Contenus récupérés avec succès', contents: data });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -127,7 +129,7 @@ exports.updateContent = async (req, res) => {
     res.json({ message: 'Contenu mis à jour avec succès', content: data });
   } catch (error) {
     console.error('🚨 Erreur serveur :', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -168,7 +170,7 @@ exports.deleteContent = async (req, res) => {
     res.json({ message: 'Contenu supprimé avec succès' });
   } catch (error) {
     console.error('🚨 Erreur serveur :', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };
 
